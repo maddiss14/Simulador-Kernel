@@ -62,6 +62,7 @@ void encolar_proceso(PCB *proceso){
 
 void *generator_thread(void *arg){
    while(running){
+      sleep(0.05);
       pthread_mutex_lock(&clock_mutex);
       pthread_cond_wait(&generator_cond, &clock_mutex);
       PCB *nuevo = malloc(sizeof(PCB));
@@ -70,6 +71,8 @@ void *generator_thread(void *arg){
          exit(1);
       }
       nuevo->pid=pid_gen++;
+      nuevo->vida=5;
       encolar_proceso(nuevo);
+      pthread_mutex_unlock(&clock_mutex);
    }
 }

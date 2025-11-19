@@ -18,7 +18,7 @@ void *clock_thread(void *arg){
       printf("Clock tick: %d\n", tick);
       if(tick % t_periodo == 0){
          pthread_cond_signal(&timer_cond);
-         printf("timer cond");
+         printf("timer cond\n");
       }
       pthread_mutex_unlock(&clock_mutex);
       printf("Unlocked \n");

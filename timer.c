@@ -11,16 +11,17 @@ int t_periodo=3;
 int tick_timer=0;
 
 void *timer_thread(void *arg){
-   printf("Hola/n");
+   printf("Hola\n");
    while(running){
       pthread_mutex_lock(&clock_mutex);
       pthread_cond_wait(&timer_cond, &clock_mutex);
       tick_timer++;
-      printf("Interrupcion timer: %d/n", tick_timer);
-      pthread_cond_signal(&scheduler_cond);
+      printf("Interrupcion timer: %d\n", tick_timer);
       if(tick_timer % t_periodo == 0){
          pthread_cond_signal(&generator_cond);
+         pthread_cond_signal(&scheduler_cond);
       }
+      printf("Hola");
       pthread_mutex_unlock(&clock_mutex);
    }
    return 0;
