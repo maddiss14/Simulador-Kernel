@@ -11,6 +11,6 @@ void *scheduler_thread(void *arg){
       pthread_mutex_lock(&clock_mutex);
       pthread_cond_wait(&scheduler_cond, &clock_mutex);
       printf("Scheduler: %d/n", tick_timer);
-      pthread_mutex_lock(&clock_mutex);
+      pthread_mutex_unlock(&clock_mutex);
    }
 }
