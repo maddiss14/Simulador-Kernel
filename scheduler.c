@@ -4,7 +4,7 @@
 #include "timer.h"
 #include "scheduler.h"
 
-pthread_cond_t scheduler_cond;
+pthread_cond_t scheduler_cond = PTHREAD_COND_INITIALIZER;
 
 void *scheduler_thread(void *arg){
    while(running){

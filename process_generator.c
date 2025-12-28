@@ -33,9 +33,9 @@ void eliminate_queue(){
    if(queue.lista != NULL){
          PCB *actual = queue.first;
          int i=0;
-         while(queue.lista[i]!=NULL){ 
+         while(actual!=NULL && queue.size){ 
             actual = queue.lista[i];
-	    queue.lista[i]== NULL;
+	    queue.lista[i] = NULL;
             printf("Proceso liberado %d\n", actual->pid);
             free(actual);
             i++;
@@ -64,7 +64,6 @@ void add_process(PCB *proceso){
 
 void *generator_thread(void *arg){
    while(running){
-      sleep(0.05);
       pthread_mutex_lock(&clock_mutex);
       pthread_cond_wait(&generator_cond, &clock_mutex);
       PCB *nuevo = malloc(sizeof(PCB));

@@ -36,6 +36,9 @@ int main(int argc, char *argv[]){
    stop_clock();
 
    //Despertar procesos
+   pthread_cond_broadcast(&timer_cond);
+   pthread_cond_broadcast(&scheduler_cond);
+   pthread_cond_broadcast(&generator_cond);
 //   pthread_join(generator_t, NULL);
 //   pthread_join(scheduler_t, NULL);
 //   pthread_join(timer_t, NULL);
