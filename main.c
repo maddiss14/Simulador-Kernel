@@ -37,6 +37,6 @@ int main(void *arg){
    pthread_join(timer_t, NULL);
    pthread_join(scheduler_t, NULL);
 
-   printf("Simulacion terminada /n");
+   printf("Simulacion terminada \n");
    return 0;
 }

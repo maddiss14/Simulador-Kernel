@@ -33,11 +33,12 @@ void eliminate_queue(){
    if(queue.lista != NULL){
          PCB *actual = queue.first;
          int i=0;
-         while(actual!=NULL){
+         while(actual!=NULL){ 
             queue.lista[i]== NULL;
             printf("Proceso liberado %d\n", actual->pid);
             free(actual);
             i++;
+	    actual = queue.lista[i];
       }
       free(queue.lista);
       queue.first = NULL;
@@ -52,7 +53,7 @@ void encolar_proceso(PCB *proceso){
       if(queue.first==NULL){
          queue.first=proceso;
       }
-      queue.lista[queue.num_process+1]=proceso;
+      queue.lista[queue.num_process]=proceso;
       queue.last = proceso;
       queue.num_process++;
       printf("Proceso %d generado \n", proceso->pid);
