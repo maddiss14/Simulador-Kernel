@@ -16,7 +16,7 @@ void *clock_thread(void *arg){
       pthread_mutex_lock(&clock_mutex);
       tick++;
       printf("Clock tick: %d\n", tick);
-      if(tick % t_periodo == 0){
+      if(tick % frec_timer == 0){
          pthread_cond_signal(&timer_cond);
       }
       pthread_mutex_unlock(&clock_mutex);

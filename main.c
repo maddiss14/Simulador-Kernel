@@ -1,14 +1,26 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include "clock.h"
 #include "timer.h"
 #include "scheduler.h"
 #include "process_generator.h"
 
-int main(void *arg){
+int frec_timer;
+int frecMin_pGen;
+int frecMax_pGen;
+
+int main(int argc, char *argv[]){
    pthread_t clock_t, timer_t, scheduler_t, generator_t;
 
+   if(argc != 4){
+	printf("Uso: %s frec_timer frecMin_pGenerator frecMax_pGenerator \n", argv[0]);
+	return(1);
+   }
+   frec_timer = atoi(argv[1]);
+   frecMin_pGen = atoi(argv[2]);
+   frecMax_pGen = atoi(argv[3]);
    printf("Inicio simulacion \n");
    start_clock();
 
@@ -23,19 +35,16 @@ int main(void *arg){
 
    stop_clock();
 
-   eliminate_queue();
-
-   sleep(1);
-   
-   pthread_cond_broadcast(&generator_cond);
-   pthread_cond_broadcast(&timer_cond);
-   pthread_cond_broadcast(&scheduler_cond);
-
-
+   //Despertar procesos
+//   pthread_join(generator_t, NULL);
+//   pthread_join(scheduler_t, NULL);
+//   pthread_join(timer_t, NULL);
    pthread_join(clock_t, NULL);
    pthread_join(generator_t, NULL);
    pthread_join(timer_t, NULL);
    pthread_join(scheduler_t, NULL);
+
+   eliminate_queue();
 
    printf("Simulacion terminada \n");
    return 0;

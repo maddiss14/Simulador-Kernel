@@ -18,7 +18,7 @@ void queue_initializer(int tam){
    queue.size = tam;
    queue.num_process=0;
    if(queue.lista == NULL){
-      printf("Error al crear la lista de punteros \n");
+      perror("Error al crear la lista de punteros \n");
       exit(1);
    }
    for (int i=0; i < tam; i++){
@@ -33,12 +33,12 @@ void eliminate_queue(){
    if(queue.lista != NULL){
          PCB *actual = queue.first;
          int i=0;
-         while(actual!=NULL){ 
-            queue.lista[i]== NULL;
+         while(queue.lista[i]!=NULL){ 
+            actual = queue.lista[i];
+	    queue.lista[i]== NULL;
             printf("Proceso liberado %d\n", actual->pid);
             free(actual);
             i++;
-	    actual = queue.lista[i];
       }
       free(queue.lista);
       queue.first = NULL;
@@ -46,9 +46,10 @@ void eliminate_queue(){
    }
 }
 
-void encolar_proceso(PCB *proceso){
+void add_process(PCB *proceso){
    if(queue.num_process == queue.size){
       printf("Error al encolar proceso %d la cola esta llena \n", proceso->pid);
+      free(proceso);
    }else{
       if(queue.first==NULL){
          queue.first=proceso;
@@ -56,7 +57,7 @@ void encolar_proceso(PCB *proceso){
       queue.lista[queue.num_process]=proceso;
       queue.last = proceso;
       queue.num_process++;
-      printf("Proceso %d generado \n", proceso->pid);
+      printf("Proceso %d generado vida: %d\n", proceso->pid, proceso->vida);
    }
 }
 
@@ -68,12 +69,13 @@ void *generator_thread(void *arg){
       pthread_cond_wait(&generator_cond, &clock_mutex);
       PCB *nuevo = malloc(sizeof(PCB));
       if(nuevo == NULL){
-         printf("Error al crear el proceso/n");
+         perror("Error al crear el proceso/n");
          exit(1);
       }
       nuevo->pid=pid_gen++;
-      nuevo->vida=5;
-      encolar_proceso(nuevo);
+      nuevo->vida= rand() % 10 + 1;
+      add_process(nuevo);
       pthread_mutex_unlock(&clock_mutex);
+
    }
 }

@@ -2,6 +2,9 @@
 
 #include <pthread.h>
 
+extern int frecMin_pGen;
+extern int frecMax_pGen;
+
 typedef struct PCB{
    int pid;
    int vida;
