@@ -8,10 +8,23 @@
 #include "process_generator.h"
 
 p_queue queue;
+P_FCFS  colaColas;
 
 pthread_cond_t generator_cond = PTHREAD_COND_INITIALIZER;
 int pid_gen=0;
-int t_frecuencia=4;
+
+void politica_initializer(int numPrio){
+   colaColas.colaPrio = malloc(sizeof(p_queue *)* numPrio);
+   colaColas.size = numPrio;
+   colaColas.num_colas = 0;
+   if(colaColas.colaPrio == NULL){
+      perror("Error al crear la cola de colas\n");
+      exit(1);
+   }
+   for(int i=0; i<size; i++){
+      colaColas.colaPrio[i] = NULL;
+   }
+}
 
 void queue_initializer(int tam){
    queue.lista = malloc(sizeof(PCB *)* tam);
@@ -30,13 +43,12 @@ void queue_initializer(int tam){
 }
 
 void eliminate_queue(){
+   int pid;
    if(queue.lista != NULL){
-         PCB *actual = queue.first;
-         int i=0;
-         while(actual!=NULL && queue.size){ 
-            actual = queue.lista[i];
-	    queue.lista[i] = NULL;
-            printf("Proceso liberado %d\n", actual->pid);
+      for(int i=0; i<queue.num_process; i++){
+         if(queue.lista[i]!=NULL){
+            pid = queue.lista[i]->pid; 
+            printf("Proceso liberado %d\n", ->pid);
             free(actual);
             i++;
       }
@@ -47,6 +59,11 @@ void eliminate_queue(){
 }
 
 void add_process(PCB *proceso){
+   if(colaColas.num_colas == 0){
+      queue_initializer(5);
+      
+   for(int i=0; i< colaColas.num_colas; i++){
+      if(
    if(queue.num_process == queue.size){
       printf("Error al encolar proceso %d la cola esta llena \n", proceso->pid);
       free(proceso);
@@ -73,6 +90,7 @@ void *generator_thread(void *arg){
       }
       nuevo->pid=pid_gen++;
       nuevo->vida= rand() % 10 + 1;
+      nuevo->prioridad = rand()% 10+1;
       add_process(nuevo);
       pthread_mutex_unlock(&clock_mutex);
 
