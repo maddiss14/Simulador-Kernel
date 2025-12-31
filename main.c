@@ -29,7 +29,7 @@ int main(int argc, char *argv[]){
    pthread_create(&scheduler_t, NULL, scheduler_thread, NULL);
    pthread_create(&generator_t, NULL, generator_thread, NULL);
 
-   queue_initializer(5);
+   politica_initializer(5);
 
    sleep(20);
 

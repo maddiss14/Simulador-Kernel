@@ -8,7 +8,7 @@ extern int frecMax_pGen;
 typedef struct PCB{
    int pid;
    int vida;
-   int prioridad;
+   int prio;
 }PCB;
 
 typedef struct p_queue{
@@ -24,14 +24,15 @@ typedef struct P_FCFS{
    int size;
    int q;
    int num_colas;
-} P_FCFS
+}P_FCFS;
 
 extern pthread_cond_t generator_cond;
 extern p_queue queue;
 
-void queue_initializer(int size);
+void queue_initializer(int size, p_queue *queue);
 void encolar_proceso(PCB *proceso);
 void *generator_thread(void *arg);
 void eliminate_queue();
+void politica_initializer(int tam);
 
 void eliminate_queue();
