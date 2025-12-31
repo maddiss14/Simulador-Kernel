@@ -28,9 +28,11 @@ void politica_initializer(int numPrio){
 }
 
 void queue_initializer(int tam, p_queue *queue){
+   if(queue == NULL){
+      perror("queue_initializer: queue es nulo\n");
+      exit(1);
+   }
    queue->lista = malloc(sizeof(PCB *)* tam);
-   queue->size = tam;
-   queue->num_process=0;
    if(queue->lista == NULL){
       perror("Error al crear la lista de punteros \n");
       exit(1);
@@ -38,6 +40,8 @@ void queue_initializer(int tam, p_queue *queue){
    for (int i=0; i < tam; i++){
       queue->lista[i]=NULL;
    }
+   queue->size = tam;
+   queue->num_process = 0;
    queue->first = NULL;
    queue->last = NULL;
    printf("Lista de procesos generada \n");
@@ -55,6 +59,7 @@ void eliminate_queue(){
 	       free(actual);
                printf("Proceso liberado %d\n", pid);
             }
+	    free(colaProces->lista);
 	    printf("Cola liberada %d\n", i);
 	    free(colaProces);
          }
@@ -64,8 +69,12 @@ void eliminate_queue(){
 }
 
 void add_process(PCB *proceso){
+   if(proceso == NULL){
+      perror("add_process: proceso nulo");
+      exit(1);
+   }
    if(colaColas.num_colas == 0){
-      p_queue *queue;
+      p_queue *queue = malloc(sizeof(p_queue));
       queue_initializer(5, queue);
       colaColas.colaPrio[0] = queue;
       colaColas.num_colas = 1;
@@ -74,37 +83,61 @@ void add_process(PCB *proceso){
       queue->num_process = 1;
       printf("Lista de procesos añadida a la cola de prioridades");
       printf("Proceso %d con vida %d añadido", proceso->pid, proceso->vida);
+      return;
    }
-   else {
-      for(int i=0; i< colaColas.num_colas; i++){
-         p_queue *actual = colaColas.colaPrio[i];
-         if(actual->lista[0]->pid < proceso->pid){
-            if(colaColas.num_colas < colaColas.size){
-               memmove(colaColas.colaPrio[i+1], colaColas.colaPrio[i], (colaColas.num_colas - 1)*sizeof(P_FCFS));
-               p_queue *nuevo;
-	       queue_initializer(5, nuevo);
-   	       colaColas.colaPrio[i] = nuevo;
-               printf("Lista de procesos añadida a la cola de prioridades posicion %d \n", i);
-            }else{
-               printf("Cola de prioridades está llena no se ha podido añadir la nueva cola");
-	       free(proceso);
-	    }
-         }
-         if(actual->lista[0]->pid == proceso->pid){
-            if(actual->num_process == 0){
-	       actual->first = proceso;
-	    }
-	    if(actual->num_process < actual->size){
-	       actual->last = proceso;
-	       actual->lista[actual->num_process+1] = proceso;
-	       actual->num_process += 1;
-               printf("Proceso %d añadido con vida: %d \n", proceso->pid, proceso->vida);
-	    }else{
-	       printf("Error al añadir el proceso la cola está llena");
-	       free(proceso);
-	    }
-            break;
-         }
+   for(int i=0; i< colaColas.num_colas; i++){
+      p_queue *actual = colaColas.colaPrio[i];
+      if(actual->num_process > 0 && actual->lista[0] != NULL && actual->lista[0]->pid < proceso->pid){
+         //Insertar nueva cola posición i
+         if(colaColas.num_colas < colaColas.size){
+	    //Mover colas una posición a la derecha
+            for(int j=colaColas.num_colas; j>i; j++){
+               colaColas.colaPrio[j] = colaColas.colaPrio[j-1];
+            }
+            p_queue *nuevo = malloc(sizeof(p_queue));
+	    queue_initializer(5, nuevo);
+   	    colaColas.colaPrio[i] = nuevo;
+	    colaColas.num_colas++;
+	    nuevo->first = proceso;
+	    nuevo->last = proceso;
+	    nuevo->num_process = 1;
+            printf("Lista de procesos añadida a la cola de prioridades posicion %d \n", i);
+         }else{
+            printf("Cola de prioridades está llena no se ha podido añadir la nueva cola");
+	    free(proceso);
+	 }
+	 return;
+      }
+      if(actual->lista[0]->pid == proceso->pid){
+         if(actual->num_process == 0){
+	    actual->first = proceso;
+	 }
+	 if(actual->num_process < actual->size){
+	    actual->last = proceso;
+	    actual->lista[actual->num_process] = proceso;
+	    actual->num_process += 1;
+            printf("Proceso %d añadido con vida: %d \n", proceso->pid, proceso->vida);
+	    return;
+	 }else{
+	    printf("Error al añadir el proceso la cola está llena");
+	    free(proceso);
+	    return;
+	 }
+      }
+      if(colaColas.num_colas < colaColas.size){
+	 p_queue *nuevo = malloc(sizeof(p_queue));
+	 queue_initializer(5, nuevo);
+	 nuevo->first = proceso;
+	 nuevo->last = proceso;
+	 nuevo->lista[0] = proceso;
+	 nuevo->num_process = 1;
+	 colaColas.colaPrio[colaColas.num_colas] = nuevo;
+	 colaColas.num_colas++;
+	 printf("Nueva cola creada al final y proceso %d añadido con vida %d \n", proceso->pid, proceso->vida);
+      }else{
+	 printf("No se puede añadir una nueva cola\n");
+	 free(proceso);
+	 return;
       }
    }
 }
