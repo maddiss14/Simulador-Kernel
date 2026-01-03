@@ -14,23 +14,34 @@ void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_time
 
    machine.cpus = malloc(sizeof(cpu_t) * num_cpu);
    if(machine.cpus == NULL){
-      perror("Error al crear los CPUS\n");
+      perror("Errorr al crear los CPUS\n");
       exit(1);
    }
    for(int i=0; i<num_cpu; i++){
       cpu_t *cpu = &machine.cpus[i];
       cpu->id = i;
+      cpu->cores = NULL;
       cpu->cores = malloc(sizeof(core_t) * num_core);
-
+      if(cpu->cores == NULL){
+         perror("Error al crear los cores\n");
+	 exit(1);
+      }
+      printf("CPU %d generado\n", cpu->id);
       for(int j=0; j<num_core; j++){
          core_t *core = &cpu->cores[j];
          core->id_core = j;
+	 core->hilos = NULL;
          core->hilos = malloc(sizeof(hilo_t) * num_hilos);
-
+	 if(core->hilos == NULL){
+	    perror("Error al crear los hilos\n");
+	    exit(1);
+	 }
+	 printf("   Core %d generado\n", core->id_core);
          for(int k=0; k<num_hilos; k++){
 	    hilo_t *hilo = &core->hilos[k];
 	    hilo->id_hilo = k;
 	    hilo->r_pcb = NULL;
+	    printf("      Hilo %d generado\n", hilo->id_hilo);
          }
       }
    }
@@ -38,25 +49,23 @@ void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_time
 }
 
 void eliminate_machine(){
-int id;
-   if(machine.cpus != NULL){
-      for(int i=0; i<machine.num_cpu; i++){
-         cpu_t *cpu = &machine.cpus[i];
-         for(int j=0; j<machine.num_core; j++){
-            core_t *core = &cpu->cores[j];
-	    for(int k=0; k<machine.num_hilos; k++){
-	       hilo_t *hilo = &core->hilos[k];
-	       id = hilo->id_hilo;
-	       free(hilo);
-	       printf("Hilo %d liberado", id);
-	    }
-	    id = core->id_core;
-	    free(core);
-	    printf("Core %d liberado", id);
-         }
-         id = cpu->id;
-         free(cpu);
-         printf("CPU %d liberado", id);
-      }
+   int id;
+   
+   if(machine.cpus == NULL){
+      return;
    }
+
+   for(int i=0; i<machine.num_cpu; i++){
+      for(int j=0; j<machine.num_core; j++){
+         free(machine.cpus[i].cores[j].hilos);
+         printf("Core %d.%d, hilos liberados\n", i, j);
+      }
+      free(machine.cpus[i].cores);
+      printf("CPU %d cores liberados\n", i);
+   }
+   free(machine.cpus);
+   machine.num_cpu = 0;
+   machine.num_core = 0;
+   machine.num_hilos = 0;
+   printf("Machine eliminada\n");
 }
