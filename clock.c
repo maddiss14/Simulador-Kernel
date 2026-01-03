@@ -4,13 +4,15 @@
 #include "clock.h"
 #include "timer.h"
 #include "scheduler.h"
+#include "machine.h"
 
 pthread_mutex_t clock_mutex = PTHREAD_MUTEX_INITIALIZER;
 int tick=0;
 int running;
 
-
 void *clock_thread(void *arg){
+   int frec_timer = machine.frec_timer;
+
    while(running){
       sleep(1);
       pthread_mutex_lock(&clock_mutex);

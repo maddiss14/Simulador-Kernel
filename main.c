@@ -7,24 +7,29 @@
 #include "timer.h"
 #include "scheduler.h"
 #include "process_generator.h"
+#include "machine.h"
 
-int frec_timer;
-int frecMin_pGen;
-int frecMax_pGen;
 
 int main(int argc, char *argv[]){
    pthread_t clock_t, timer_t, scheduler_t, generator_t;
 
-   if(argc != 4){
-	printf("Uso: %s frec_timer frecMin_pGenerator frecMax_pGenerator \n", argv[0]);
+   int num_cpu, num_core, num_hilos, frec_timer, frecMin_pGen, frecMax_pGen;
+
+   if(argc != 7){
+	printf("Uso: %s num_cpus, num_cores, num_hilos, frec_timer frecMin_pGenerator frecMax_pGenerator \n", argv[0]);
 	return(1);
    }
    
    srand(time(NULL));
 
-   frec_timer = atoi(argv[1]);
-   frecMin_pGen = atoi(argv[2]);
-   frecMax_pGen = atoi(argv[3]);
+   num_cpu = atoi(argv[1]);
+   num_core = atoi(argv[2]);
+   num_hilos = atoi(argv[3]);
+   frec_timer = atoi(argv[4]);
+   frecMin_pGen = atoi(argv[5]);
+   frecMax_pGen = atoi(argv[6]);
+
+   machine_initializer(num_cpu, num_core, num_hilos, frec_timer, frecMin_pGen, frecMax_pGen);
    printf("Inicio simulacion \n");
    start_clock();
 
@@ -52,7 +57,7 @@ int main(int argc, char *argv[]){
    pthread_join(scheduler_t, NULL);
 
    eliminate_queue();
-
+   eliminate_machine();
    printf("Simulacion terminada \n");
    return 0;
 }

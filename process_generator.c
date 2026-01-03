@@ -7,6 +7,7 @@
 #include "timer.h"
 #include "scheduler.h"
 #include "process_generator.h"
+#include "machine.h"
 
 P_FCFS  colaColas;
 
@@ -63,11 +64,12 @@ void eliminate_queue(){
                printf("   Proceso liberado %d, prioridad %d \n", pid, prio);
             }
 	    free(colaProces->lista);
-	    printf("Cola %d liberada\n\n", i);
 	    free(colaProces);
+	    printf("Cola %d liberada\n\n", i);
          }
       }
       free(colaColas.colaPrio);
+      printf("Colas de prioridades liberadas\n");
    }
 }
 
@@ -160,4 +162,26 @@ void *generator_thread(void *arg){
       add_process(nuevo);
       pthread_mutex_unlock(&clock_mutex);
    }
+}
+
+PCB *sig_process(){
+   if(colaColas.colaPrio != NULL){
+      for(int i = 0; i < colaColas.num_colas; i++){
+        p_queue *queue = colaColas.colaPrio[i];
+        if(queue->num_process > 0){
+         PCB *process = queue->first;
+         for(int j = 1; j<queue->num_process; j++){
+          queue->lista[j-1] = queue->lista[j];
+         }
+         queue->num_process--;
+         queue->lista[queue->num_process] = NULL;
+         if(queue->num_process > 0){
+          queue->first = queue->lista[0];
+          queue->last = queue->lista[queue->num_process--];
+         }
+         return process;
+      }
+    }
+  }
+  return NULL;
 }

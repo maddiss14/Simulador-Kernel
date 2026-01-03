@@ -3,6 +3,8 @@
 #include "clock.h"
 #include "timer.h"
 #include "scheduler.h"
+#include "process_generator.h"
+#include "machine.h"
 
 pthread_cond_t scheduler_cond = PTHREAD_COND_INITIALIZER;
 
@@ -14,3 +16,4 @@ void *scheduler_thread(void *arg){
       pthread_mutex_unlock(&clock_mutex);
    }
 }
+

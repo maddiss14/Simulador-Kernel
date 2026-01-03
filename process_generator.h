@@ -36,3 +36,5 @@ void eliminate_queue();
 void politica_initializer(int tam);
 
 void eliminate_queue();
+
+PCB *sig_process();

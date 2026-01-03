@@ -6,12 +6,16 @@
 #include "timer.h"
 #include "scheduler.h"
 #include "process_generator.h"
+#include "machine.h"
 
 pthread_cond_t timer_cond = PTHREAD_COND_INITIALIZER;;
 int tick_timer=0;
 int frec_pGen;
 
 void *timer_thread(void *arg){
+   int frecMax_pGen = machine.frec_max_pGen;
+   int frecMin_pGen = machine.frec_min_pGen;
+   int frec_timer = machine.frec_timer;
    while(running){
       frec_pGen = rand() % (frecMax_pGen-frecMin_pGen) + frecMin_pGen;
       pthread_mutex_lock(&clock_mutex);
