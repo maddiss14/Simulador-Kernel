@@ -13,7 +13,7 @@ int frec_pGen;
 
 void *timer_thread(void *arg){
    while(running){
-      frec_pGen = rand() % frecMax_pGen + frecMin_pGen;
+      frec_pGen = rand() % (frecMax_pGen-frecMin_pGen) + frecMin_pGen;
       pthread_mutex_lock(&clock_mutex);
       pthread_cond_wait(&timer_cond, &clock_mutex);
       pthread_cond_signal(&scheduler_cond);

@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <time.h>
 #include "clock.h"
 #include "timer.h"
 #include "scheduler.h"
@@ -18,6 +19,9 @@ int main(int argc, char *argv[]){
 	printf("Uso: %s frec_timer frecMin_pGenerator frecMax_pGenerator \n", argv[0]);
 	return(1);
    }
+   
+   srand(time(NULL));
+
    frec_timer = atoi(argv[1]);
    frecMin_pGen = atoi(argv[2]);
    frecMax_pGen = atoi(argv[3]);
@@ -29,7 +33,7 @@ int main(int argc, char *argv[]){
    pthread_create(&scheduler_t, NULL, scheduler_thread, NULL);
    pthread_create(&generator_t, NULL, generator_thread, NULL);
 
-   politica_initializer(5);
+   politica_initializer(10);
 
    sleep(20);
 
