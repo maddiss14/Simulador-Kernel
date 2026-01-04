@@ -32,7 +32,7 @@ void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_time
          core_t *core = &cpu->cores[j];
          core->id_core = j;
 	 core->hilos = NULL;
-	 core->ejec = machine.num_core+1;
+	 core->ejec = -1;
          core->hilos = malloc(sizeof(hilo_t) * num_hilos);
 	 if(core->hilos == NULL){
 	    perror("Error al crear los hilos\n");
