@@ -9,29 +9,22 @@
 
 pthread_cond_t scheduler_cond = PTHREAD_COND_INITIALIZER;
 
-void *scheduler_thread(void *arg){
-   while(running){
-      pthread_mutex_lock(&clock_mutex);
-      pthread_cond_wait(&scheduler_cond, &clock_mutex);
-      printf("Scheduler: %d\n", tick_timer);
-      pthread_mutex_unlock(&clock_mutex);
-   }
-}
-
 void ejec_process(){
    for(int i=0; i<machine.num_cpu; i++){
     cpu_t *cpu = &machine.cpus[i];
     for(int j=0; j<machine.num_core; j++){
      core_t *core = &cpu->cores[j];
+     printf("Ejecutando core %d\n",j);
      for(int k=0; k<machine.num_hilos;k++){
       hilo_t *hilo = &core->hilos[k];
       if(hilo->r_pcb!=NULL){
        if(hilo->estado == 1 && hilo->quantum > 0){
         hilo->r_pcb->vida--;
         hilo->quantum--;
+        printf("   Hilo %d ejecutando proceso %d\n",k, hilo->r_pcb->pid); 
         if(hilo->quantum == 0){
          if(hilo->r_pcb->vida !=0){
-          add_process(hilo->r_pcb, f_colaColas);
+          add_process(hilo->r_pcb, &f_colaColas);
          }
          hilo->r_pcb = NULL;
          hilo->estado = 2;
@@ -42,9 +35,10 @@ void ejec_process(){
         hilo->estado = 1;
         core->ejec = k;
         hilo->r_pcb->vida--;
+        printf("   Hilo %d ejecutando proceso %d\n", k, hilo->r_pcb->pid); 
         if(hilo->quantum == 0){
          if(hilo->r_pcb->vida !=0){
-          add_process(hilo->r_pcb, f_colaColas);
+          add_process(hilo->r_pcb, &f_colaColas);
          }
          hilo->r_pcb = NULL;
          hilo->estado = 2;
@@ -61,14 +55,26 @@ void ejec_process(){
       }
     }
     else{
-     hilo->r_pcb = sig_process(r_colaColas);
-     if(hilo->r_pcb == NULL){
+     hilo->r_pcb = sig_process(&r_colaColas);
+     if(hilo->r_pcb == NULL && f_colaColas.num_colas != 0){
       r_colaColas = f_colaColas;
-      eliminate_queue(f_colaColas);
-      politica_initializer(10, f_colaColas);
+      eliminate_queue(&f_colaColas);
+      politica_initializer(10, &f_colaColas);
+      printf("Cambiando cola de preparados por cola de finalizados\n");
      }
     }
    }
   }
  }
 }      
+
+void *scheduler_thread(void *arg){
+   while(running){
+      pthread_mutex_lock(&clock_mutex);
+      pthread_cond_wait(&scheduler_cond, &clock_mutex);
+      printf("Scheduler: %d\n", tick_timer);
+      ejec_process();
+      pthread_mutex_unlock(&clock_mutex);
+   }
+}
+

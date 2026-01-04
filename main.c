@@ -36,8 +36,8 @@ int main(int argc, char *argv[]){
    printf("Inicio simulacion \n");
    start_clock();
 
-   politica_initializer(10, r_colaColas);
-   politica_initializer(10, f_colaColas);
+   politica_initializer(10, &r_colaColas);
+   politica_initializer(10, &f_colaColas);
 
    pthread_create(&clock_t, NULL, clock_thread, NULL);
    pthread_create(&timer_t, NULL, timer_thread, NULL);
@@ -60,8 +60,8 @@ int main(int argc, char *argv[]){
    pthread_join(timer_t, NULL);
    pthread_join(scheduler_t, NULL);
 
-   eliminate_queue(r_colaColas);
-   eliminate_queue(f_colaColas);
+   eliminate_queue(&r_colaColas);
+   eliminate_queue(&f_colaColas);
    
    eliminate_machine();
    printf("Simulacion terminada \n");

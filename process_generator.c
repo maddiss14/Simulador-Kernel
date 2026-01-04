@@ -12,16 +12,16 @@
 pthread_cond_t generator_cond = PTHREAD_COND_INITIALIZER;
 int pid_gen=0;
 
-void politica_initializer(int numPrio, P_FCFS colaColas){
-   colaColas.colaPrio = malloc(sizeof(p_queue *)* numPrio);
-   colaColas.size = numPrio;
-   colaColas.num_colas = 0;
-   if(colaColas.colaPrio == NULL){
+void politica_initializer(int numPrio, P_FCFS *colaColas){
+   colaColas->colaPrio = malloc(sizeof(p_queue *)* numPrio);
+   colaColas->size = numPrio;
+   colaColas->num_colas = 0;
+   if(colaColas->colaPrio == NULL){
       perror("Error al crear la cola de colas\n");
       exit(1);
    }
    for(int i=0; i<numPrio; i++){
-      colaColas.colaPrio[i] = NULL;
+      colaColas->colaPrio[i] = NULL;
    }
    printf("Cola de prioridades generada \n");
 }
@@ -46,14 +46,14 @@ void queue_initializer(int tam, p_queue *queue){
    printf("Lista de procesos generada \n");
 }
 
-void eliminate_queue(P_FCFS colaColas){
+void eliminate_queue(P_FCFS *colaColas){
    int pid;
    int prio;
-   if(colaColas.colaPrio != NULL){
-      for(int i=0; i<colaColas.num_colas; i++){
+   if(colaColas->colaPrio != NULL){
+      for(int i=0; i<colaColas->num_colas; i++){
 	printf("Cola %d:  \n", i);
-         if(colaColas.colaPrio[i]!=NULL){
-	    p_queue *colaProces = colaColas.colaPrio[i];
+         if(colaColas->colaPrio[i]!=NULL){
+	    p_queue *colaProces = colaColas->colaPrio[i];
 	    for(int j=0; j<colaProces->num_process; j++){
 	       PCB *actual = colaProces->lista[j];
                pid = actual->pid;
@@ -66,7 +66,7 @@ void eliminate_queue(P_FCFS colaColas){
 	    printf("Cola %d liberada\n\n", i);
          }
       }
-      free(colaColas.colaPrio);
+      free(colaColas->colaPrio);
       printf("Colas de prioridades liberadas\n");
    }
 }
@@ -87,36 +87,36 @@ void anadir_process(p_queue *queue, PCB *proceso){
    }
 }
 
-void add_process(PCB *proceso, P_FCFS colaColas){
+void add_process(PCB *proceso, P_FCFS *colaColas){
    //Cola prioridades está vacía
-   if(colaColas.num_colas == 0){
+   if(colaColas->num_colas == 0){
       p_queue *queue = malloc(sizeof(p_queue));
       queue_initializer(5, queue);
-      colaColas.colaPrio[0] = queue;
-      colaColas.num_colas++;
+      colaColas->colaPrio[0] = queue;
+      colaColas->num_colas++;
       anadir_process(queue, proceso);
       printf("Lista de procesos añadida a la cola de prioridades\n");
       return;
    }
-   for(int i=0; i< colaColas.num_colas; i++){
+   for(int i=0; i< colaColas->num_colas; i++){
       printf("Iteración for add_process %d\n", i);
-      p_queue *actual = colaColas.colaPrio[i];
+      p_queue *actual = colaColas->colaPrio[i];
       if(actual->num_process > 0){
          printf("Actual prio: %d, proceso a añadir prio: %d\n", actual->lista[0]->prio, proceso->prio);
       }
       if(actual->num_process > 0 && (actual->lista[0]->prio > proceso->prio)){
          printf("Iteración for ha entrado al primer if\n");
          //Insertar nueva cola posición i
-         if(colaColas.num_colas < colaColas.size){
+         if(colaColas->num_colas < colaColas->size){
 	    //printf("Iteracion for ha entrado al segundo if\n");
 	    //Mover colas una posición a la derecha
-            for(int j=colaColas.num_colas; j>i; j--){
-               colaColas.colaPrio[j] = colaColas.colaPrio[j-1];
+            for(int j=colaColas->num_colas; j>i; j--){
+               colaColas->colaPrio[j] = colaColas->colaPrio[j-1];
             }
             p_queue *nuevo = malloc(sizeof(p_queue));
 	    queue_initializer(5, nuevo);
-   	    colaColas.colaPrio[i] = nuevo;
-	    colaColas.num_colas++;
+   	    colaColas->colaPrio[i] = nuevo;
+	    colaColas->num_colas++;
             anadir_process(nuevo, proceso);
             printf("Lista de procesos añadida a la cola de prioridades posicion %d \n", i);
             return;
@@ -131,11 +131,11 @@ void add_process(PCB *proceso, P_FCFS colaColas){
         return;
       }
    }
-   if(colaColas.num_colas < colaColas.size){
+   if(colaColas->num_colas < colaColas->size){
       p_queue *nuevo = malloc(sizeof(p_queue));
       queue_initializer(5, nuevo);
-      colaColas.colaPrio[colaColas.num_colas] = nuevo;
-      colaColas.num_colas++;
+      colaColas->colaPrio[colaColas->num_colas] = nuevo;
+      colaColas->num_colas++;
       anadir_process(nuevo, proceso);
       printf("Nueva cola creada al final\n");
    }
@@ -157,15 +157,15 @@ void *generator_thread(void *arg){
       nuevo->pid=pid_gen++;
       nuevo->vida= rand() % 10 + 1;
       nuevo->prio = (rand()% 10)+1;
-      add_process(nuevo, r_colaColas);
+      add_process(nuevo, &r_colaColas);
       pthread_mutex_unlock(&clock_mutex);
    }
 }
 
-PCB *sig_process(P_FCFS colaColas){
-   if(colaColas.colaPrio != NULL){
-      for(int i = 0; i < colaColas.num_colas; i++){
-        p_queue *queue = colaColas.colaPrio[i];
+PCB *sig_process(P_FCFS *colaColas){
+   if(colaColas->colaPrio != NULL){
+      for(int i = 0; i < colaColas->num_colas; i++){
+        p_queue *queue = colaColas->colaPrio[i];
         if(queue->num_process > 0){
          PCB *process = queue->first;
          for(int j = 1; j<queue->num_process; j++){
