@@ -12,7 +12,6 @@
 
 //Variables globales
 pthread_cond_t generator_cond = PTHREAD_COND_INITIALIZER;
-int pid_gen=0;
 
 //Inicialización las colas
 void politica_initializer(int numPrio, P_FCFS *colaColas)
@@ -202,6 +201,7 @@ void add_process(PCB *proceso, P_FCFS *colaColas)
 
 //Hilo de process generator
 void *generator_thread(void *arg){
+   int pid_gen = 0;
    while(running){
       pthread_mutex_lock(&clock_mutex);
       pthread_cond_wait(&generator_cond, &clock_mutex);
