@@ -9,10 +9,10 @@
 
 pthread_cond_t scheduler_cond = PTHREAD_COND_INITIALIZER;
 
-static int procesos_preparados(core_t *core){
+static int procesos_preparados(core_t *core, hilo_t *hilo){
    for (int i=0; i<machine.num_core; i++){
-      hilo_t *hilo = &core->hilos[i];
-      if(hilo->r_pcb != NULL) return 1;
+      hilo_t *act = &core->hilos[i];
+      if(act->r_pcb != NULL && act != hilo) return 1;
    }
    return 0;
 }
@@ -30,8 +30,8 @@ static void ejec_hilo(hilo_t *hilo, core_t *core)
       if(hilo->quantum==0){
       
          if(hilo->r_pcb->vida > 0){
-            
-            if(!procesos_preparados(core)){
+               
+            if(!procesos_preparados(core, hilo)){
                hilo->quantum = 2;
                core->ejec = hilo->id_hilo;
                return;
@@ -86,12 +86,8 @@ static void ejec_process()
                break;
 	    }
 
-            if(!procesos_preparados(core) && f_colaColas.num_colas != 0){
-               tmp = r_colaColas;
+            if(r_colaColas.num_colas == 0 && f_colaColas.num_colas != 0){
                r_colaColas = f_colaColas;
-               f_colaColas = tmp;
-               
-               eliminate_queue(&f_colaColas);
                politica_initializer(10, &f_colaColas);
                
                printf("Cambiando cola de preparados por cola de finalizados\n");
