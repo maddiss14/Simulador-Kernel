@@ -10,6 +10,9 @@
 #include "machine.h"
 
 
+P_FCFS  r_colaColas;
+P_FCFS  f_colaColas;
+
 int main(int argc, char *argv[]){
    pthread_t clock_t, timer_t, scheduler_t, generator_t;
 
@@ -33,12 +36,13 @@ int main(int argc, char *argv[]){
    printf("Inicio simulacion \n");
    start_clock();
 
+   politica_initializer(10, r_colaColas);
+   politica_initializer(10, f_colaColas);
+
    pthread_create(&clock_t, NULL, clock_thread, NULL);
    pthread_create(&timer_t, NULL, timer_thread, NULL);
    pthread_create(&scheduler_t, NULL, scheduler_thread, NULL);
    pthread_create(&generator_t, NULL, generator_thread, NULL);
-
-   politica_initializer(10);
 
    sleep(20);
 
@@ -56,7 +60,9 @@ int main(int argc, char *argv[]){
    pthread_join(timer_t, NULL);
    pthread_join(scheduler_t, NULL);
 
-   eliminate_queue();
+   eliminate_queue(r_colaColas);
+   eliminate_queue(f_colaColas);
+   
    eliminate_machine();
    printf("Simulacion terminada \n");
    return 0;

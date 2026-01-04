@@ -26,15 +26,16 @@ typedef struct P_FCFS{
    int num_colas;
 }P_FCFS;
 
+
 extern pthread_cond_t generator_cond;
 extern p_queue queue;
+extern P_FCFS r_colaColas;
+extern P_FCFS f_colaColas;
 
 void queue_initializer(int size, p_queue *queue);
-void encolar_proceso(PCB *proceso);
+void add_process(PCB *proceso, P_FCFS colaColas);
 void *generator_thread(void *arg);
-void eliminate_queue();
-void politica_initializer(int tam);
-
-void eliminate_queue();
-
-PCB *sig_process();
+void eliminate_queue(P_FCFS colaColas);
+void politica_initializer(int numPrio, P_FCFS colaColas);
+PCB *sig_process(P_FCFS colaColas);
+void eliminate_queue(P_FCFS colaColas);

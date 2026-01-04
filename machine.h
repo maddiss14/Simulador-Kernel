@@ -5,10 +5,13 @@
 typedef struct{
    int id_hilo;
    PCB *r_pcb;
+   int quantum;
+   int estado; // 0 preparado 1 ejecutando 2 finalizado
 } hilo_t;
 
 typedef struct{
    int id_core;
+   int ejec; //Hilo que está ejecutandose
    hilo_t *hilos;
 } core_t;
 

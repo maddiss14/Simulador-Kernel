@@ -9,12 +9,10 @@
 #include "process_generator.h"
 #include "machine.h"
 
-P_FCFS  colaColas;
-
 pthread_cond_t generator_cond = PTHREAD_COND_INITIALIZER;
 int pid_gen=0;
 
-void politica_initializer(int numPrio){
+void politica_initializer(int numPrio, P_FCFS colaColas){
    colaColas.colaPrio = malloc(sizeof(p_queue *)* numPrio);
    colaColas.size = numPrio;
    colaColas.num_colas = 0;
@@ -48,7 +46,7 @@ void queue_initializer(int tam, p_queue *queue){
    printf("Lista de procesos generada \n");
 }
 
-void eliminate_queue(){
+void eliminate_queue(P_FCFS colaColas){
    int pid;
    int prio;
    if(colaColas.colaPrio != NULL){
@@ -89,7 +87,7 @@ void anadir_process(p_queue *queue, PCB *proceso){
    }
 }
 
-void add_process(PCB *proceso){
+void add_process(PCB *proceso, P_FCFS colaColas){
    //Cola prioridades está vacía
    if(colaColas.num_colas == 0){
       p_queue *queue = malloc(sizeof(p_queue));
@@ -159,12 +157,12 @@ void *generator_thread(void *arg){
       nuevo->pid=pid_gen++;
       nuevo->vida= rand() % 10 + 1;
       nuevo->prio = (rand()% 10)+1;
-      add_process(nuevo);
+      add_process(nuevo, r_colaColas);
       pthread_mutex_unlock(&clock_mutex);
    }
 }
 
-PCB *sig_process(){
+PCB *sig_process(P_FCFS colaColas){
    if(colaColas.colaPrio != NULL){
       for(int i = 0; i < colaColas.num_colas; i++){
         p_queue *queue = colaColas.colaPrio[i];
