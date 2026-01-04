@@ -9,64 +9,76 @@
 
 pthread_cond_t scheduler_cond = PTHREAD_COND_INITIALIZER;
 
-void ejec_process(){
-   for(int i=0; i<machine.num_cpu; i++){
-    cpu_t *cpu = &machine.cpus[i];
-    for(int j=0; j<machine.num_core; j++){
-     core_t *core = &cpu->cores[j];
-     printf("Ejecutando core %d\n",j);
-     for(int k=0; k<machine.num_hilos;k++){
-      hilo_t *hilo = &core->hilos[k];
-      if(hilo->r_pcb!=NULL){
-       if(hilo->estado == 1 && hilo->quantum > 0){
-        hilo->r_pcb->vida--;
-        hilo->quantum--;
-        printf("   Hilo %d ejecutando proceso %d\n",k, hilo->r_pcb->pid); 
-        if(hilo->quantum == 0){
-         if(hilo->r_pcb->vida !=0){
-          add_process(hilo->r_pcb, &f_colaColas);
+static void ejec_hilo(hilo_t *hilo, core_t *core)
+{
+   if(!hilo || !hilo->r_pcb) return;
+   
+   if(hilo->estado == 1 && hilo->quantum>0){
+      hilo->r_pcb->vida--;
+      hilo->quantum--;
+      printf("   Hilo ejecutando proceso %d\n", hilo->r_pcb->pid);
+      
+      if(hilo->quantum==0){
+         if(hilo->r_pcb->vida > 0){
+            add_process(hilo->r_pcb, &f_colaColas);
+            printf("Hilo ejecutando proceso %d quantum acabado\n", hilo->r_pcb->pid);
          }
+         else printf("Proceso %d ha terminado la ejecución\n", hilo->r_pcb->pid);
          hilo->r_pcb = NULL;
          hilo->estado = 2;
-         core->ejec = 3;
-        }
-       }
-       else if(hilo->estado == 0 && core->ejec == 3){
-        hilo->estado = 1;
-        core->ejec = k;
-        hilo->r_pcb->vida--;
-        printf("   Hilo %d ejecutando proceso %d\n", k, hilo->r_pcb->pid); 
-        if(hilo->quantum == 0){
-         if(hilo->r_pcb->vida !=0){
-          add_process(hilo->r_pcb, &f_colaColas);
+         core->ejec = machine.num_hilos+1;
          }
-         hilo->r_pcb = NULL;
-         hilo->estado = 2;
-         core->ejec = 3;
-        }
-      }
-      if(hilo->estado ==2){
-        if(k != core->ejec){
-         core->ejec = k;
-         hilo->estado = 1;
-         hilo->quantum=2;
-         break;
-        }
-      }
-    }
-    else{
-     hilo->r_pcb = sig_process(&r_colaColas);
-     if(hilo->r_pcb == NULL && f_colaColas.num_colas != 0){
-      r_colaColas = f_colaColas;
-      eliminate_queue(&f_colaColas);
-      politica_initializer(10, &f_colaColas);
-      printf("Cambiando cola de preparados por cola de finalizados\n");
-     }
-    }
    }
-  }
- }
-}      
+   else if(hilo->estado == 0 && core->ejec == machine.num_hilos+1){
+      core->ejec = hilo->id_hilo;
+      hilo->estado = 1;
+      hilo->quantum = 2;
+   }
+}
+
+static void ejec_process()
+{
+   P_FCFS tmp;
+
+   for(int i=0; i<machine.num_cpu; i++){
+      cpu_t *cpu = &machine.cpus[i];
+      
+      for(int j=0; j<machine.num_core; j++){
+         core_t *core = &cpu->cores[j];
+         printf("Ejecutando core %d\n",j);
+     
+         for(int k=0; k<machine.num_hilos;k++){
+            hilo_t *hilo = &core->hilos[k];
+      
+            if(hilo->r_pcb!=NULL){
+               ejec_hilo(hilo, core);
+            }
+            else{
+               hilo->r_pcb = sig_process(&r_colaColas);
+               if(hilo->r_pcb != NULL){
+                  if(core->ejec==machine.num_core+1){
+	             hilo->estado = 1;
+	             hilo->quantum = 2;
+	             core->ejec = k;
+	             printf("   Hilo asignado nuevo proceso %d\n", hilo->r_pcb->pid);
+	          }
+               }
+               else if(f_colaColas.num_colas != 0){
+                  tmp = r_colaColas;
+                  r_colaColas = f_colaColas;
+                  f_colaColas = tmp;
+               
+                  eliminate_queue(&f_colaColas);
+                  politica_initializer(10, &f_colaColas);
+               
+                  printf("Cambiando cola de preparados por cola de finalizados\n");
+                  hilo->r_pcb = sig_process(&r_colaColas);
+	       }
+            }
+         }
+      }
+   }
+}
 
 void *scheduler_thread(void *arg){
    while(running){
