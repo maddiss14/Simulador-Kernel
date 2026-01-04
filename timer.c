@@ -22,7 +22,7 @@ void *timer_thread(void *arg){
       pthread_cond_wait(&timer_cond, &clock_mutex);
       pthread_cond_signal(&scheduler_cond);
       tick_timer++;
-      printf("Interrupcion timer: %d\n", tick_timer);
+      //printf("Interrupcion timer: %d\n", tick_timer);
       if(tick_timer % frec_pGen == 0){
          pthread_cond_signal(&generator_cond);
       }

@@ -17,12 +17,12 @@ void *clock_thread(void *arg){
       sleep(1);
       pthread_mutex_lock(&clock_mutex);
       tick++;
-      printf("Clock tick: %d\n", tick);
+      //printf("Clock tick: %d\n", tick);
       if(tick % frec_timer == 0){
          pthread_cond_signal(&timer_cond);
       }
       pthread_mutex_unlock(&clock_mutex);
-      printf("Unlocked \n");
+      //printf("Unlocked \n");
    }
    return 0;
 }

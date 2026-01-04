@@ -44,7 +44,7 @@ int main(int argc, char *argv[]){
    pthread_create(&scheduler_t, NULL, scheduler_thread, NULL);
    pthread_create(&generator_t, NULL, generator_thread, NULL);
 
-   sleep(20);
+   sleep(60);
 
    stop_clock();
 
