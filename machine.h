@@ -2,6 +2,8 @@
 
 #include "process_generator.h"
 
+#define QUANTUM 2
+
 typedef struct{
    int id_hilo;
    PCB *r_pcb;

@@ -13,23 +13,34 @@
 //Variables globales
 pthread_cond_t generator_cond = PTHREAD_COND_INITIALIZER;
 
+void restart_politica(P_FCFS *colaColas){
+   for(int i=0; i<colaColas->num_colas; i++){
+      if(colaColas->colaPrio[i]!=NULL){
+         free(colaColas->colaPrio[i]->lista);
+         free(colaColas->colaPrio[i]);
+      }
+      colaColas->colaPrio[i] = NULL;
+   }
+   colaColas->num_colas = 0;
+   printf("Cola de prioridades reseteada \n");
+}
+
 //Inicialización las colas
 void politica_initializer(int numPrio, P_FCFS *colaColas)
 {
    colaColas->colaPrio = malloc(sizeof(p_queue *)* numPrio);
    colaColas->size = numPrio;
-   colaColas->num_colas = 0;
 
    if(colaColas->colaPrio == NULL){
       perror("Error al crear la cola de colas\n");
       exit(1);
    }
-
-   for(int i=0; i<numPrio; i++){
+   for(int i=0; i<colaColas->num_colas; i++){
       colaColas->colaPrio[i] = NULL;
    }
 
-   printf("Cola de prioridades generada \n");
+   restart_politica(colaColas);
+   printf("Cola de prioridades reseteada \n");
 }
 
 void queue_initializer(int tam, p_queue *queue)
@@ -54,12 +65,10 @@ void queue_initializer(int tam, p_queue *queue)
    queue->first = NULL;
    queue->last = NULL;
 
-   printf("Lista de procesos generada \n");
+   //printf("Lista de procesos generada \n");
 }
 
-//Liberar memoria
-void eliminate_queue(P_FCFS *colaColas)
-{
+void eliminate_queues(P_FCFS *colaColas){
    int pid;
    int prio;
 
@@ -84,10 +93,16 @@ void eliminate_queue(P_FCFS *colaColas)
 	    printf("Cola %d liberada\n\n", i);
          }
       }
-
-      free(colaColas->colaPrio);
-      printf("Colas de prioridades liberadas\n");
    }
+}
+
+//Liberar memoria
+void eliminate_politica(P_FCFS *colaColas)
+{
+   eliminate_queues(colaColas);
+
+   free(colaColas->colaPrio);
+   printf("Colas de prioridades liberadas\n");
 }
 
 //Función auxiliar para crear e inicializar colas
@@ -132,19 +147,22 @@ void add_process(PCB *proceso, P_FCFS *colaColas)
       colaColas->num_colas++;
 
       anadir_process(queue, proceso);
-      printf("Lista de procesos añadida a la cola de prioridades\n");
+      //printf("Lista de procesos añadida a la cola de prioridades\n");
       return;
    }
 
+   //Todas las prioridades tienen una cola asignada
+   if(colaColas->num_colas == colaColas->size){
+   
+      p_queue *queue = colaColas->colaPrio[proceso->prio];
+      anadir_process(queue, proceso);
+      return;
+   }
+   
    for(int i=0; i< colaColas->num_colas; i++){
 
       //printf("Iteración for add_process %d\n", i);
       p_queue *actual = colaColas->colaPrio[i];
-
-      if(actual->num_process > 0){
-         printf("Actual prio: %d, proceso a añadir prio: %d\n",
-                actual->lista[0]->prio, proceso->prio);
-      }
 
       //Insertar nueva cola de procesos al principio
       if(actual->num_process > 0 &&
@@ -211,7 +229,7 @@ void *generator_thread(void *arg){
          exit(1);
       }
       nuevo->pid=pid_gen++;
-      nuevo->vida= rand() % 10 + 1;
+      nuevo->vida= rand() % 10 + 7;
       nuevo->prio = (rand()% 10)+1;
       add_process(nuevo, &r_colaColas);
       pthread_mutex_unlock(&clock_mutex);
@@ -238,7 +256,7 @@ PCB *sig_process(P_FCFS *colaColas)
          
             if(queue->num_process > 0){
                queue->first = queue->lista[0];
-               queue->last = queue->lista[queue->num_process];
+               queue->last = queue->lista[queue->num_process - 1];
             }
             return process;
          }

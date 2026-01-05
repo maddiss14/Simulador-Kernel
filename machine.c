@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "machine.h"
-#define QUANTUM 2
 
 machine_t machine;
 
@@ -44,7 +43,7 @@ void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_time
 	    hilo->id_hilo = k;
 	    hilo->r_pcb = NULL;
 	    hilo->quantum = QUANTUM;
-	    hilo->estado = 0;
+	    hilo->estado = 2;
 	    printf("      Hilo %d generado\n", hilo->id_hilo);
          }
       }

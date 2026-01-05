@@ -60,8 +60,8 @@ int main(int argc, char *argv[]){
    pthread_join(timer_t, NULL);
    pthread_join(scheduler_t, NULL);
 
-   eliminate_queue(&r_colaColas);
-   eliminate_queue(&f_colaColas);
+   eliminate_politica(&r_colaColas);
+   eliminate_politica(&f_colaColas);
    
    eliminate_machine();
    printf("Simulacion terminada \n");

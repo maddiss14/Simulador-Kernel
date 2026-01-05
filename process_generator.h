@@ -36,6 +36,8 @@ void queue_initializer(int size, p_queue *queue);
 void add_process(PCB *proceso, P_FCFS *colaColas);
 void *generator_thread(void *arg);
 void eliminate_queue(P_FCFS *colaColas);
+void eliminate_politica(P_FCFS *colaColas);
+void restart_politica(P_FCFS *colaColas);
 void politica_initializer(int numPrio, P_FCFS *colaColas);
 PCB *sig_process(P_FCFS *colaColas);
 void eliminate_queue(P_FCFS *colaColas);
