@@ -55,8 +55,6 @@ static void ejec_hilo(hilo_t *hilo, core_t *core)
          }
       }else{
          hilo->r_pcb = NULL;
-         hilo->estado = 2;
-         core->ejec = -1;
       }
    }
    if(hilo->estado == 1 && hilo->quantum>0){
@@ -119,7 +117,7 @@ static void ejec_process()
                        hilo_t *nuevo = &core->hilos[l];
                        if(nuevo->id_hilo != hilo->id_hilo && nuevo->r_pcb == NULL){
                           hilo->r_pcb = NULL; 
-                          hilo->estado = 2; 
+                          hilo->estado = 0; 
                           nuevo->r_pcb = sig_process(&r_colaColas);
                           core->ejec = l;
                           nuevo->estado = 1;
@@ -139,11 +137,13 @@ static void ejec_process()
                ejec_hilo(hilo, core); 
             }
             if(hilo->estado == 2){
-               hilo->estado == 0;
+               hilo->estado = 0;
             }
             
             if(r_colaColas.num_colas == 0 && f_colaColas.num_colas != 0){
+               P_FCFS tmp = r_colaColas;
                r_colaColas = f_colaColas;
+               f_colaColas = tmp;
                restart_politica(&f_colaColas);
                
                printf("Cambiando cola de preparados por cola de finalizados\n");
@@ -162,4 +162,3 @@ void *scheduler_thread(void *arg){
       pthread_mutex_unlock(&clock_mutex);
    }
 }
-
