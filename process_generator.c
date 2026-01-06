@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -252,10 +253,10 @@ void *generator_thread(void *arg){
       pthread_mutex_lock(&clock_mutex);
       pthread_cond_wait(&generator_cond, &clock_mutex);
       PCB *nuevo = malloc(sizeof(PCB));
-      if(read_prog(file, new_pcb) == NULL){
-         perror("Error al crear el proceso\n");
-         exit(1);
-      }
+      char ruta[4096];
+      snprintf(ruta, sizeof(ruta), "../prometheus/prog%03d.elf", pid_gen);
+      printf("Ruta %s\n", ruta);
+      read_prog(ruta, nuevo);
       nuevo->pid=pid_gen++;
       nuevo->vida= rand() % 10 + 7;
       if (r_colaColas.size > 0) {

@@ -8,7 +8,7 @@
 #include "scheduler.h"
 #include "process_generator.h"
 #include "machine.h"
-
+#include "memoria.h"
 
 P_FCFS  r_colaColas;
 P_FCFS  f_colaColas;
@@ -32,6 +32,8 @@ int main(int argc, char *argv[]){
    frecMin_pGen = atoi(argv[5]);
    frecMax_pGen = atoi(argv[6]);
 
+   phys_mem_init();
+   
    machine_initializer(num_cpu, num_core, num_hilos, frec_timer, frecMin_pGen, frecMax_pGen);
    printf("Inicio simulacion \n");
    start_clock();
