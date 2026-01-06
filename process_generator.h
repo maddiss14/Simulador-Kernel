@@ -5,10 +5,17 @@
 extern int frecMin_pGen;
 extern int frecMax_pGen;
 
+typedef struct{
+   int code;
+   int data;
+   int pgb;
+} mm_t;
+
 typedef struct PCB{
    int pid;
    int vida;
    int prio;
+   mm_t mm;
 }PCB;
 
 typedef struct p_queue{
