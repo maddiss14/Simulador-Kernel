@@ -3,7 +3,7 @@
 #include "machine.h"
 
 machine_t machine;
-
+ 
 static void restart_tlb(hilo_t *hilo){
    for(int i=0; i< TLB_ENTRIES; i++){
       hilo->mmu.tlb[i].val = -1;

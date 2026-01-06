@@ -33,6 +33,7 @@ int main(int argc, char *argv[]){
    frecMax_pGen = atoi(argv[6]);
 
    phys_mem_init();
+   virt_mem_init();
    
    machine_initializer(num_cpu, num_core, num_hilos, frec_timer, frecMin_pGen, frecMax_pGen);
    printf("Inicio simulacion \n");

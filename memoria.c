@@ -15,16 +15,26 @@ int id_table = 0;
 static unsigned char *translate_dir(const hilo_t *hilo,int va, int *page_fault){
    if(page_fault) *page_fault = 0;
    
+   if(!hilo || hilo->PTBR < 0 || hilo->PTBR >= memVirtual.num_tablas){
+      if(page_fault) *page_fault = 1;
+      return NULL;
+   }
+   
    page_table_t *tabla = memVirtual.tablas[hilo->PTBR];
+   if(!tabla || !tabla->pages || tabla->num_pages <= 0){
+      if(page_fault) *page_fault = 1;
+      return NULL;
+   }
    
    int vpn = va/TAM_PAGE;
    int off = va % TAM_PAGE;
    
-   if(vpn >= tabla->num_pages || tabla->pages[vpn].valida == 0){
-     return NULL;
+   if(vpn < 0 || vpn >=tabla->num_pages || tabla->pages[vpn].valida == 0){
+      if(page_fault) *page_fault = 1;
+      return NULL;
    }
    
-   int frame = tabla->pages->frame_id;
+   int frame = tabla->pages[vpn].frame_id;
    int pa = frame*TAM_PAGE +off;
    return memFisica.memoria + pa;
 }
@@ -50,25 +60,50 @@ static void frame_init()
 //Si hay capacidad suficiente no se hace nada, si no se aumenta la capacidad
 static void hay_capacidad(int nec){
    if(memVirtual.tam >= nec) return;
-   int new_tam = nec;
-   while(new_tam < nec) new_tam *= 2;
-   page_table_t **tmp = (page_table_t **)realloc(memVirtual.tablas, new_tam * sizeof(page_table_t *));
-   if(!tmp){
-      perror("Error al realloc\n");
-      exit(1);
+   if(memVirtual.tablas == NULL){
+      int new_tam = nec;
+      if(new_tam < nec) {
+         while(new_tam < nec) new_tam *= 2;
+      }
+      page_table_t **tmp = (page_table_t **)realloc(memVirtual.tablas, new_tam * sizeof(page_table_t *));
+      if(!tmp){
+         perror("Error al realloc\n");
+         exit(1);
+      }
+     //Reasignar puntero a array tablas con mayor tamaño
+      memVirtual.tablas = tmp;
+      memVirtual.tam = new_tam;
+      return;
    }
-   for(int i=memVirtual.tam; i<new_tam; i++){
-      tmp[i] = NULL;
+   if(memVirtual.tam < nec){
+      if(memVirtual.tam > 0) new_tam = memVirtual.tam
+      else memVirtual = 16;
+      
+      while(new_tam < nec) new_tam *= 2;
+      page_table_t **tmp = (page_table_t **)realloc(memVirtual.tablas, new_tam * sizeof(page_table_t *));
+      if(!tmp){
+         perror("Error al realloc\n");
+         exit(1);
+      }
+      for(int i=memVirtual.tam; i<new_tam; i++){
+         tmp[i] = NULL;
+      }
+     //Reasignar puntero a array tablas con mayor tamaño
+      memVirtual.tablas = tmp;
+      memVirtual.tam = new_tam;
    }
-   //Reasignar puntero a array tablas con mayor tamaño
-   memVirtual.tablas = tmp;
-   memVirtual.tam = new_tam;
 }
 
 int add_ptable(page_table_t *tabla)
 {
    if(!tabla) return -1;
+   
    hay_capacidad(memVirtual.num_tablas + 1);
+   if(!memVirtual.tablas){
+      perror("memVirtual.tablas es null\n");
+      return -1;
+   }
+   
    memVirtual.tablas[memVirtual.num_tablas] = tabla;
    tabla->id = memVirtual.num_tablas;
    memVirtual.num_tablas++;
@@ -157,25 +192,13 @@ page_table_t *crear_tabla(int num_pages, const int *frames, int pid)
       exit(1);
    }
    tabla->num_pages=num_pages;
-   tabla->id = id_table++;
-   
-   pthread_mutex_lock(&mem_mutex);
+  
    for(int i=0; i<num_pages; i++){
       int frame = frames[i];
       tabla->pages[i].frame_id = frame;
       tabla->pages[i].valida = 1;
-      
-      memFisica.frames[frame].libre = 0;
-      memFisica.frames[frame].pid = pid;
-      memFisica.frames[frame].pagina = i;
   }
-  
-  add_ptable(tabla);
-  memFisica.num_tables++;
-  pthread_mutex_unlock(&mem_mutex);
-  
   return tabla;
-   
 }
 
 void eliminaet_p_mem(){

@@ -66,12 +66,11 @@ static void ejec_hilo(hilo_t *hilo, core_t *core)
    }
 
    if(hilo->estado == 1 && hilo->quantum>0){
-      printf("Hilo %d ejecutando proceso %d\n",hilo->id_hilo, hilo->r_pcb->pid);
-      printf("   Proceso %d ptbr %d data % d\n",hilo->r_pcb->pid, hilo->r_pcb->mm.pgb, hilo->r_pcb->mm.data);
-      if(memVirtual.tablas[hilo->PTBR])
-      {
-         int fault = 0;
-         int instr = mm_read(hilo, hilo->PC, &fault);
+      int fallo = 0;
+      int instr = mm_read(hilo, hilo->PC, &fallo);
+      if(fallo){
+         printf("   Hilo %d ejecutando proceso %d: en VA=0x%08X\n", hilo->id_hilo, hilo->r_pcb->pid, hilo->PC);
+      }else{
          printf("INSTRUCCION PC=0x%08X instr=0x%08X\n", hilo->PC, instr);
          hilo->PC +=TAM_PAL;
       }
@@ -97,8 +96,8 @@ static void reducir_vida()
             
 	       if(hilo->r_pcb != NULL){
                   hilo->estado = 0;
-               }
-	    }else return;
+               }else return;
+	    }
 	    
             if(hilo->r_pcb->vida>0){
                printf("Hilo %d ejecutando proceso %d\n",hilo->id_hilo, hilo->r_pcb->pid);
@@ -130,7 +129,11 @@ static void asig_process(){
                   hilo->r_pcb = sig_process(&r_colaColas);
 
                   if(hilo->r_pcb != NULL){
-                     hilo->estado = 0; 
+                     hilo->PTBR = hilo->r_pcb->mm.pgb;
+                     hilo->PC = hilo->r_pcb->mm.code;
+                     hilo->estado = 1;
+                     hilo->quantum = QUANTUM;
+                     core->ejec = hilo->id_hilo;
                      break;
                   }
                }

@@ -44,6 +44,8 @@ extern virtual_mem_t memVirtual;
 extern pthread_mutex_t mem_mutex;
 
 void phys_mem_init();
+void virt_mem_init();
 page_table_t *crear_tabla(int num_pages, const int *frames, int pid);
 int asig_frame_libre(int *frames_libres, int num_page);
 int mm_read(hilo_t *hilo, int va, int *fault);
+int add_ptable(page_table_t *tabla);

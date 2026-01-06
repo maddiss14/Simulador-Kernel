@@ -106,32 +106,61 @@ void read_prog(char *filename, PCB *proceso)
       free(buf_cp);
       exit(1);
    }
-   //Actualizar información del PCB
-   proceso->mm.code = val_text;
-   proceso->mm.data = val_data;
-   
    page_table_t *tabla = crear_tabla(pag_tot, frames, proceso->pid);
-   proceso->mm.pgb = tabla->id;
+   if(!tabla){
+      perror("Error al crear la tabla de páginas\n");
+      free(frames);
+      free(buf_cp);
+      free(buf);
+      exit(1);
+   }
+   int pgb = add_ptable(tabla);
+   if(pgb < 0){
+      perror("Error al añadir la tabla de páginas\n");
+      free(frames);
+      free(buf_cp);
+      free(buf);
+      exit(1);
+   }
+   pthread_mutex_lock(&mem_mutex);
+  
+   //Actualizar información del PCB
    
-   aux=0;
+   int remaining = tam_text;
+   int copied = 0;
    for(int i=0; i<pag_text; i++){
-      cont=0;
-      while(cont<TAM_PAGE){
-         memcpy(memFisica.memoria + frames[i]*TAM_PAGE + cont, buf+val_text + aux, TAM_PAL);
-         aux +=TAM_PAL;
-         cont += TAM_PAL;
+      int frame = frames[i];
+      int chunk = remaining > TAM_PAGE ? TAM_PAGE : remaining;
+      if(chunk > 0){
+         memcpy(memFisica.memoria + frame*TAM_PAGE, buf_cp + val_text + copied, (size_t)chunk);
       }
+      memFisica.frames[frame].libre = 0;
+      memFisica.frames[frame].pid = proceso->pid;
+      memFisica.frames[frame].pagina = i;
+      copied+=chunk;
+      remaining -= chunk;
    }
 
-   aux=0;
+   remaining = tam_data;
+   copied = 0;
    for(int i=0; i<pag_data; i++){
-      cont = 0;
-      while(cont<TAM_PAGE){
-         memcpy(memFisica.memoria + frames[pag_text+i]*TAM_PAGE + cont, buf + val_data + aux, TAM_PAL);
-         aux += TAM_PAL;
-         cont += TAM_PAL;
+      int frame = frames[i];
+      int chunk = remaining > TAM_PAGE ? TAM_PAGE : remaining;
+      if(chunk > 0){
+         memcpy(memFisica.memoria + frame*TAM_PAGE, buf_cp + val_data + copied, (size_t)chunk);
       }
+      memFisica.frames[frame].libre = 0;
+      memFisica.frames[frame].pid = proceso->pid;
+      memFisica.frames[frame].pagina = i;
+      copied+=chunk;
+      remaining -= chunk;
    }
+   pthread_mutex_unlock(&mem_mutex);
+   
+   proceso->mm.code = 0;
+   proceso->mm.data = tam_text;
+   proceso->mm.pgb = pgb;
+
    free(frames);
    free(buf_cp);
    free(buf);
