@@ -39,12 +39,13 @@ static unsigned char *translate_dir(const hilo_t *hilo,int va, int *page_fault){
    return memFisica.memoria + pa;
 }
 
-int mm_read(hilo_t *hilo, int va, int *fault){
-   unsigned char *pal = translate_dir(hilo, va, fault);
-   if(!pal) return 0;
-   int val;
-   memcpy(&val, pal, sizeof(val));
-   return val;
+void mm_read(hilo_t *hilo, int va, char *out, int *fault)
+{
+   for(int i=0; i< TAM_PAL; i++){
+      unsigned char *pal = translate_dir(hilo, va, fault);
+      if(!pal || fault) return;
+      out[i] = *pal;
+   }
 }
 
 

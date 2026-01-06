@@ -71,14 +71,14 @@ static void ejec_hilo(hilo_t *hilo, core_t *core)
       if(memVirtual.tablas && hilo->PTBR >= 0 && hilo->PTBR < memVirtual.num_tablas && memVirtual.tablas[hilo->PTBR]){
       
          int fallo = 0;
-         char instr = mm_read(hilo, hilo->PC, &fallo);
+         unsigned char instr[TAM_PAL] = {0};
+         mm_read(hilo, hilo->PC, instr, &fallo);
          if(fallo){
             printf("   Hilo %d ejecutando proceso %d: en VA=0x%08X\n", hilo->id_hilo, hilo->r_pcb->pid, hilo->PC);
          }else{
-            printf("INSTRUCCION PC=0x%08X instr=0x%08X\n", hilo->PC, instr);
+            printf("INSTRUCCION PC=0x%08X INSTR =%02X %02X %02X %02X\n", hilo->PC, instr[0], instr[1], instr[2], instr[3]);
             hilo->PC +=TAM_PAL;
          }
-         hilo->r_pcb->vida--;
          hilo->quantum--;
       }
    }
