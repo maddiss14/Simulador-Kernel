@@ -1,18 +1,18 @@
 #pragma once
 
 #include "process_generator.h"
-#include "memoria.h"
 
 #define QUANTUM 2
+#define TLB_ENTRIES 16
 
-typedef struct{
+typedef struct TLB{
    int val;
    int pres;
    int ref;
    int dirty;
 } TLB;
 
-typedef struct{
+typedef struct MMU{
    TLB *tlb;
 } MMU;
 

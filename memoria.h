@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pthread.h>
+#include "machine.h"
 
 #define TAM_P_MEM (1 << 26) //64MB =  2²⁴ * 4B
 #define TAM_PAL 4
@@ -25,6 +26,12 @@ typedef struct{
 }frame_t;
 
 typedef struct{
+   page_table_t **tablas;
+   int tam;
+   int num_tablas;
+} virtual_mem_t;
+
+typedef struct{
    unsigned char *memoria;
    frame_t *frames;
    int next_frame;
@@ -32,9 +39,11 @@ typedef struct{
 } physical_mem_t;
 
 extern physical_mem_t memFisica;
+extern virtual_mem_t memVirtual;
 
 extern pthread_mutex_t mem_mutex;
 
 void phys_mem_init();
-page_table_t *crear_tabla(int num_pages, const int *frames);
+page_table_t *crear_tabla(int num_pages, const int *frames, int pid);
 int asig_frame_libre(int *frames_libres, int num_page);
+int mm_read(hilo_t *hilo, int va, int *fault);

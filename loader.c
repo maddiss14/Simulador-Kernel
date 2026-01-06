@@ -89,7 +89,7 @@ void read_prog(char *filename, PCB *proceso)
    }
    pag_text = (tam_text + TAM_PAGE-1) / TAM_PAGE;
    pag_data = (tam_data + TAM_PAGE-1) / TAM_PAGE;
-   pag_tot = (tam_fich + TAM_PAGE-1)/TAM_PAGE;
+   pag_tot = pag_text + pag_data;
 
    frames = (int *)malloc(pag_tot * sizeof(int));
    if(!frames){
@@ -110,7 +110,7 @@ void read_prog(char *filename, PCB *proceso)
    proceso->mm.code = val_text;
    proceso->mm.data = val_data;
    
-   page_table_t *tabla = crear_tabla(pag_tot, frames);
+   page_table_t *tabla = crear_tabla(pag_tot, frames, proceso->pid);
    proceso->mm.pgb = tabla->id;
    
    aux=0;
@@ -130,15 +130,6 @@ void read_prog(char *filename, PCB *proceso)
          memcpy(memFisica.memoria + frames[pag_text+i]*TAM_PAGE + cont, buf + val_data + aux, TAM_PAL);
          aux += TAM_PAL;
          cont += TAM_PAL;
-      }
-   }
-   aux=0;
-   for(int i=pag_data; i<pag_tot; i++){
-      cont=0;
-      while(cont<TAM_PAGE){
-         memcpy(memFisica.memoria + frames[pag_text+pag_data+i]*TAM_PAGE + aux, buf+val_data+tam_data+aux, TAM_PAL);
-         aux += TAM_PAL;
-	 cont += TAM_PAL;
       }
    }
    free(frames);

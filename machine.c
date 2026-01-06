@@ -4,6 +4,15 @@
 
 machine_t machine;
 
+static void restart_tlb(hilo_t *hilo){
+   for(int i=0; i< TLB_ENTRIES; i++){
+      hilo->mmu.tlb[i].val = -1;
+      hilo->mmu.tlb[i].pres = 0;
+      hilo->mmu.tlb[i].ref = 0;
+      hilo->mmu.tlb[i].dirty = 0;
+   }
+}
+
 void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_timer, int frec_min_pGen, int frec_max_pGen){
    machine.num_cpu = num_cpu;
    machine.num_core = num_core;
@@ -44,6 +53,10 @@ void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_time
 	    hilo->r_pcb = NULL;
 	    hilo->quantum = QUANTUM;
 	    hilo->estado = 2;
+	    hilo->PC = 0;
+	    hilo->PTBR = -1;
+	    hilo->mmu.tlb = (TLB *)calloc(TLB_ENTRIES, sizeof(TLB));
+	    restart_tlb(hilo);
 	    printf("      Hilo %d generado\n", hilo->id_hilo);
          }
       }

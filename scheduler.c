@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <memory.h>
+#include <stdlib.h>
 #include "clock.h"
 #include "timer.h"
 #include "scheduler.h"
 #include "process_generator.h"
 #include "machine.h"
+#include "memoria.h"
 
 pthread_cond_t scheduler_cond = PTHREAD_COND_INITIALIZER;
 
@@ -63,11 +65,54 @@ static void ejec_hilo(hilo_t *hilo, core_t *core)
       }
    }
 
-   if(hilo->estado == 1 && hilo->r_pcb && hilo->quantum > 0){
+   if(hilo->estado == 1 && hilo->quantum>0){
       printf("Hilo %d ejecutando proceso %d\n",hilo->id_hilo, hilo->r_pcb->pid);
+      printf("   Proceso %d ptbr %d data % d\n",hilo->r_pcb->pid, hilo->r_pcb->mm.pgb, hilo->r_pcb->mm.data);
+      if(memVirtual.tablas[hilo->PTBR])
+      {
+         int fault = 0;
+         int instr = mm_read(hilo, hilo->PC, &fault);
+         printf("INSTRUCCION PC=0x%08X instr=0x%08X\n", hilo->PC, instr);
+         hilo->PC +=TAM_PAL;
+      }
       hilo->r_pcb->vida--;
       hilo->quantum--;
    }
+}
+
+static void reducir_vida()
+{
+   for(int i=0; i<machine.num_cpu; i++){
+      cpu_t *cpu = &machine.cpus[i];
+      
+      for(int j=0; j<machine.num_core; j++){
+         core_t *core = &cpu->cores[j];
+         //printf("Ejecutando core %d\n",j);
+     
+         for(int k=0; k<machine.num_hilos;k++){
+            hilo_t *hilo = &core->hilos[k];
+            
+            if(hilo->r_pcb==NULL){
+               hilo->r_pcb = sig_process(&r_colaColas);
+            
+	       if(hilo->r_pcb != NULL){
+                  hilo->estado = 0;
+               }
+	    }else return;
+	    
+            if(hilo->r_pcb->vida>0){
+               printf("Hilo %d ejecutando proceso %d\n",hilo->id_hilo, hilo->r_pcb->pid);
+               hilo->r_pcb->vida--;
+            }
+            if(hilo->r_pcb->vida == 0){
+               printf("Hilo %d proceso %d se ha quedado sin vida\n", hilo->id_hilo, hilo->r_pcb->vida);
+               free(hilo->r_pcb);
+               hilo->r_pcb = NULL;
+               hilo->estado = 2;
+            }
+         }
+      }
+   }   
 }
 
 static void asig_process(){
@@ -97,7 +142,6 @@ static void asig_process(){
 
 static void ejec_process()
 {
-   asig_process();
 
    for(int i=0; i<machine.num_cpu; i++){
       cpu_t *cpu = &machine.cpus[i];
@@ -149,11 +193,14 @@ static void ejec_process()
    }
 }
 
+
 void *scheduler_thread(void *arg){
    while(running){
       pthread_mutex_lock(&clock_mutex);
       pthread_cond_wait(&scheduler_cond, &clock_mutex);
       printf("Scheduler: %d\n", tick_timer);
+      asig_process();
+      reducir_vida();
       ejec_process();
       pthread_mutex_unlock(&clock_mutex);
    }

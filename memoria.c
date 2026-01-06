@@ -1,10 +1,42 @@
-#include "memoria.h"
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
+#include "machine.h"
+#include "memoria.h"
 
 physical_mem_t memFisica;
+virtual_mem_t memVirtual;
 pthread_mutex_t mem_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 int id_table = 0;
+
+
+static unsigned char *translate_dir(const hilo_t *hilo,int va, int *page_fault){
+   if(page_fault) *page_fault = 0;
+   
+   page_table_t *tabla = memVirtual.tablas[hilo->PTBR];
+   
+   int vpn = va/TAM_PAGE;
+   int off = va % TAM_PAGE;
+   
+   if(vpn >= tabla->num_pages || tabla->pages[vpn].valida == 0){
+     return NULL;
+   }
+   
+   int frame = tabla->pages->frame_id;
+   int pa = frame*TAM_PAGE +off;
+   return memFisica.memoria + pa;
+}
+
+int mm_read(hilo_t *hilo, int va, int *fault){
+   unsigned char *pal = translate_dir(hilo, va, fault);
+   if(!pal) return 0;
+   int val;
+   memcpy(&val, pal, sizeof(val));
+   return val;
+}
+
 
 //Inicializar frames de memoria
 static void frame_init()
@@ -15,6 +47,39 @@ static void frame_init()
       memFisica.frames[i].pagina = -1;
    }
 }
+//Si hay capacidad suficiente no se hace nada, si no se aumenta la capacidad
+static void hay_capacidad(int nec){
+   if(memVirtual.tam >= nec) return;
+   int new_tam = nec;
+   while(new_tam < nec) new_tam *= 2;
+   page_table_t **tmp = (page_table_t **)realloc(memVirtual.tablas, new_tam * sizeof(page_table_t *));
+   if(!tmp){
+      perror("Error al realloc\n");
+      exit(1);
+   }
+   for(int i=memVirtual.tam; i<new_tam; i++){
+      tmp[i] = NULL;
+   }
+   //Reasignar puntero a array tablas con mayor tamaño
+   memVirtual.tablas = tmp;
+   memVirtual.tam = new_tam;
+}
+
+int add_ptable(page_table_t *tabla)
+{
+   if(!tabla) return -1;
+   hay_capacidad(memVirtual.num_tablas + 1);
+   memVirtual.tablas[memVirtual.num_tablas] = tabla;
+   tabla->id = memVirtual.num_tablas;
+   memVirtual.num_tablas++;
+   return tabla->id;
+}
+
+void virt_mem_init(){
+   memVirtual.tablas = NULL;
+   memVirtual.tam = 16;
+   memVirtual.num_tablas = 0;
+}  
 
 //Inicializar memoria física
 void phys_mem_init(){
@@ -46,38 +111,36 @@ void phys_mem_init(){
 int asig_frame_libre(int *frames_libres, int num_page)
 {
    if(!frames_libres || num_page <= 0) return -1;
-   int frame;
-   int cont, i;
+   int frame = memFisica.next_frame;;
+   int cont =0;
+   int i=0;
   
    pthread_mutex_lock(&mem_mutex);
-   frame = memFisica.next_frame;
-   cont = 0;
-   i=0;
+
    while(i< NUM_FRAMES && cont < num_page){
-      if(memFisica.frames[i].libre){
-         memFisica.frames[i].libre = 0;
-         frames_libres[cont++] = frame;
+      if(memFisica.frames[frame].libre){
+         memFisica.frames[frame].libre = 0;
+         frames_libres[cont] = frame;
          cont++;
       }
       frame = (frame+1) % NUM_FRAMES;
       i++;
    }
-   pthread_mutex_unlock(&mem_mutex);
-   
+     
    if(cont < num_page){
-      pthread_mutex_lock(&mem_mutex);
       for(int j=0; j<cont; j++){
          int libre = frames_libres[j];
          memFisica.frames[libre].libre = 1;
       }
       printf("Numero de frames < frames necesarios\n");
-      pthread_mutex_unlock(&mem_mutex);
       return -1;
    }
    memFisica.next_frame = frame;
+   
+   pthread_mutex_unlock(&mem_mutex);
    return 0;
 }
-page_table_t *crear_tabla(int num_pages, const int *frames)
+page_table_t *crear_tabla(int num_pages, const int *frames, int pid)
 {
    if(num_pages<=0 || !frames) return NULL;
    
@@ -94,19 +157,23 @@ page_table_t *crear_tabla(int num_pages, const int *frames)
       exit(1);
    }
    tabla->num_pages=num_pages;
-   tabla->id = id_table;
-   id_table++;
+   tabla->id = id_table++;
+   
+   pthread_mutex_lock(&mem_mutex);
    for(int i=0; i<num_pages; i++){
       int frame = frames[i];
       tabla->pages[i].frame_id = frame;
       tabla->pages[i].valida = 1;
       
       memFisica.frames[frame].libre = 0;
-      memFisica.frames[frame].pid = 0;
+      memFisica.frames[frame].pid = pid;
       memFisica.frames[frame].pagina = i;
   }
   
+  add_ptable(tabla);
   memFisica.num_tables++;
+  pthread_mutex_unlock(&mem_mutex);
+  
   return tabla;
    
 }
