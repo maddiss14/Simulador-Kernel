@@ -1,6 +1,6 @@
 TARGET := main
 
-SRCS := clock.c main.c scheduler.c timer.c process_generator.c machine.c
+SRCS := clock.c main.c scheduler.c timer.c process_generator.c machine.c loader.c memoria.c
 
 CC = gcc
 CFLAGS = -O2 -pthread

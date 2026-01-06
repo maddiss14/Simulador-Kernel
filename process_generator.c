@@ -9,6 +9,7 @@
 #include "scheduler.h"
 #include "process_generator.h"
 #include "machine.h"
+#include "loader.h"
 
 //Variables globales
 pthread_cond_t generator_cond = PTHREAD_COND_INITIALIZER;
@@ -251,7 +252,7 @@ void *generator_thread(void *arg){
       pthread_mutex_lock(&clock_mutex);
       pthread_cond_wait(&generator_cond, &clock_mutex);
       PCB *nuevo = malloc(sizeof(PCB));
-      if(nuevo == NULL){
+      if(read_prog(file, new_pcb) == NULL){
          perror("Error al crear el proceso\n");
          exit(1);
       }

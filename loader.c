@@ -1,13 +1,12 @@
 #include <pthread.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 
 pthread_cond_t loader_cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t loader_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-int void read_code(FILE *file)
-{
-   
 
 void read_prog(char *filename, PCB *proceso)
 {
