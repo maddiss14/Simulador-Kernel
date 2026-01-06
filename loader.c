@@ -23,6 +23,9 @@ void read_prog(char *filename, PCB *proceso)
    int aux,cont;
    char *buf, *buf_cp;
    size_t leido;
+   int chunk;
+   int copied = 0;
+   unsigned char instr[TAM_PAL] = {0};
 
    if(stat(filename, &st) == -1){
       perror("Error al intentar obtener el tamaño del fichero\n");
@@ -78,6 +81,7 @@ void read_prog(char *filename, PCB *proceso)
    sscanf(linea + 6, "%x", &val_data);
    printf("Valor .data %d (0x%06X)\n", val_data, val_data);
 
+   linea=strtok(NULL, "\n");
    tam_text = val_data - val_text;
    tam_data = tam_fich-val_data;
     
@@ -125,35 +129,46 @@ void read_prog(char *filename, PCB *proceso)
    pthread_mutex_lock(&mem_mutex);
   
    //Actualizar información del PCB
-   
-   int remaining = tam_text;
-   int copied = 0;
    for(int i=0; i<pag_text; i++){
       int frame = frames[i];
-      int chunk = remaining > TAM_PAGE ? TAM_PAGE : remaining;
-      if(chunk > 0){
-         memcpy(memFisica.memoria + frame*TAM_PAGE, buf_cp + val_text + copied, (size_t)chunk);
+      while(linea){
+         //Copiar como hex no ASCII
+         for(int j=0; j<TAM_PAL; j++){
+            sscanf(linea+(j*2), "%2hhx", &instr[j]);
+         }
+         memcpy(memFisica.memoria + frame*TAM_PAGE, instr, TAM_PAL);
+         printf("INSTR = %02X %02X %02X %02X\n", instr[0], instr[1], instr[2], instr[3]);
+         copied = TAM_PAL;
+         linea = strtok(NULL, "\n");
+         memFisica.frames[frame].libre = 0;
+         memFisica.frames[frame].pid = proceso->pid;
+         memFisica.frames[frame].pagina = i;
+         if(copied == TAM_PAGE){
+            copied = 0;
+            break;
+         }
       }
-      memFisica.frames[frame].libre = 0;
-      memFisica.frames[frame].pid = proceso->pid;
-      memFisica.frames[frame].pagina = i;
-      copied+=chunk;
-      remaining -= chunk;
    }
 
-   remaining = tam_data;
-   copied = 0;
-   for(int i=0; i<pag_data; i++){
-      int frame = frames[i];
-      int chunk = remaining > TAM_PAGE ? TAM_PAGE : remaining;
-      if(chunk > 0){
-         memcpy(memFisica.memoria + frame*TAM_PAGE, buf_cp + val_data + copied, (size_t)chunk);
+   for(int i=0; i<pag_text; i++){
+      int frame = frames[pag_text + i];
+      while(linea){
+         //Copiar como hex no ASCII
+         for(int j=0; j<TAM_PAL; j++){
+            sscanf(linea+(j*2), "%2hhx", &instr[j]);
+         }
+         memcpy(memFisica.memoria + frame*TAM_PAGE, instr, TAM_PAL);
+         printf("DATA = %02X %02X %02X %02X\n", instr[0], instr[1], instr[2], instr[3]);
+         copied = TAM_PAL;
+         linea = strtok(NULL, "\n");
+         memFisica.frames[frame].libre = 0;
+         memFisica.frames[frame].pid = proceso->pid;
+         memFisica.frames[frame].pagina = i;
+         if(copied == TAM_PAGE){
+            copied = 0;
+            break;
+         }
       }
-      memFisica.frames[frame].libre = 0;
-      memFisica.frames[frame].pid = proceso->pid;
-      memFisica.frames[frame].pagina = i;
-      copied+=chunk;
-      remaining -= chunk;
    }
    pthread_mutex_unlock(&mem_mutex);
    

@@ -66,16 +66,21 @@ static void ejec_hilo(hilo_t *hilo, core_t *core)
    }
 
    if(hilo->estado == 1 && hilo->quantum>0){
-      int fallo = 0;
-      int instr = mm_read(hilo, hilo->PC, &fallo);
-      if(fallo){
-         printf("   Hilo %d ejecutando proceso %d: en VA=0x%08X\n", hilo->id_hilo, hilo->r_pcb->pid, hilo->PC);
-      }else{
-         printf("INSTRUCCION PC=0x%08X instr=0x%08X\n", hilo->PC, instr);
-         hilo->PC +=TAM_PAL;
+      printf("   Hilo %d ejecutando proceso %d\n", hilo->id_hilo, hilo->r_pcb->pid);
+      printf("      Proceso %d ptbr %d data %d\n", hilo->r_pcb->pid, hilo->r_pcb->mm.pgb, hilo->r_pcb->mm.data);
+      if(memVirtual.tablas && hilo->PTBR >= 0 && hilo->PTBR < memVirtual.num_tablas && memVirtual.tablas[hilo->PTBR]){
+      
+         int fallo = 0;
+         char instr = mm_read(hilo, hilo->PC, &fallo);
+         if(fallo){
+            printf("   Hilo %d ejecutando proceso %d: en VA=0x%08X\n", hilo->id_hilo, hilo->r_pcb->pid, hilo->PC);
+         }else{
+            printf("INSTRUCCION PC=0x%08X instr=0x%08X\n", hilo->PC, instr);
+            hilo->PC +=TAM_PAL;
+         }
+         hilo->r_pcb->vida--;
+         hilo->quantum--;
       }
-      hilo->r_pcb->vida--;
-      hilo->quantum--;
    }
 }
 

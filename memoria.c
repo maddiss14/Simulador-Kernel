@@ -15,7 +15,7 @@ int id_table = 0;
 static unsigned char *translate_dir(const hilo_t *hilo,int va, int *page_fault){
    if(page_fault) *page_fault = 0;
    
-   if(!hilo || hilo->PTBR < 0 || hilo->PTBR >= memVirtual.num_tablas){
+   if(!memVirtual.tablas || hilo->PTBR < 0 || hilo->PTBR >= memVirtual.num_tablas){
       if(page_fault) *page_fault = 1;
       return NULL;
    }
@@ -59,27 +59,13 @@ static void frame_init()
 }
 //Si hay capacidad suficiente no se hace nada, si no se aumenta la capacidad
 static void hay_capacidad(int nec){
-   if(memVirtual.tam >= nec) return;
-   if(memVirtual.tablas == NULL){
-      int new_tam = nec;
-      if(new_tam < nec) {
-         while(new_tam < nec) new_tam *= 2;
-      }
-      page_table_t **tmp = (page_table_t **)realloc(memVirtual.tablas, new_tam * sizeof(page_table_t *));
-      if(!tmp){
-         perror("Error al realloc\n");
-         exit(1);
-      }
-     //Reasignar puntero a array tablas con mayor tamaño
-      memVirtual.tablas = tmp;
-      memVirtual.tam = new_tam;
-      return;
-   }
-   if(memVirtual.tam < nec){
-      if(memVirtual.tam > 0) new_tam = memVirtual.tam
-      else memVirtual = 16;
+   int new_tam;
+   if(memVirtual.tablas == NULL | memVirtual.tam < nec){
       
+      if(memVirtual.tam > 0) new_tam = memVirtual.tam;
+      else memVirtual.tam = 16;
       while(new_tam < nec) new_tam *= 2;
+      
       page_table_t **tmp = (page_table_t **)realloc(memVirtual.tablas, new_tam * sizeof(page_table_t *));
       if(!tmp){
          perror("Error al realloc\n");
@@ -99,11 +85,6 @@ int add_ptable(page_table_t *tabla)
    if(!tabla) return -1;
    
    hay_capacidad(memVirtual.num_tablas + 1);
-   if(!memVirtual.tablas){
-      perror("memVirtual.tablas es null\n");
-      return -1;
-   }
-   
    memVirtual.tablas[memVirtual.num_tablas] = tabla;
    tabla->id = memVirtual.num_tablas;
    memVirtual.num_tablas++;
@@ -111,9 +92,13 @@ int add_ptable(page_table_t *tabla)
 }
 
 void virt_mem_init(){
-   memVirtual.tablas = NULL;
    memVirtual.tam = 16;
    memVirtual.num_tablas = 0;
+   memVirtual.tablas = (page_table_t **)calloc(memVirtual.tam, sizeof(page_table_t));
+   if(!memVirtual.tablas){
+      perror("Error al crear el array tablas memoria virtual\n");
+      exit(1);
+  }
 }  
 
 //Inicializar memoria física
