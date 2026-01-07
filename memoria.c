@@ -132,19 +132,20 @@ void phys_mem_init(){
 int asig_frame_libre(int *frames_libres, int num_page)
 {
    if(!frames_libres || num_page <= 0) return -1;
-   int frame = memFisica.next_frame;;
+   int frame = 0;
    int cont =0;
    int i=0;
   
    pthread_mutex_lock(&mem_mutex);
 
-   while(i< NUM_FRAMES && cont < num_page){
-      if(memFisica.frames[frame].libre){
-         memFisica.frames[frame].libre = 0;
-         frames_libres[cont] = frame;
+   for(int i = 0; i< NUM_FRAMES; i++){
+      if(cont >= num_page) break;
+      
+      if(memFisica.frames[i].libre){
+         memFisica.frames[i].libre = 0;
+         frames_libres[cont] = i;
          cont++;
       }
-      frame = (frame+1) % NUM_FRAMES;
       i++;
    }
      
@@ -156,7 +157,6 @@ int asig_frame_libre(int *frames_libres, int num_page)
       printf("Numero de frames < frames necesarios\n");
       return -1;
    }
-   memFisica.next_frame = frame;
    
    pthread_mutex_unlock(&mem_mutex);
    return 0;
@@ -196,4 +196,13 @@ void eliminaet_p_mem(){
    memFisica.num_tables = 0;
 }
 
+void printf_tablaPag(page_table_t *tabla){
+   for(int i=0; i<tabla->num_pages; i++){
+      int frame = tabla->pages[i].frame_id;
+      for(int j=0; j<TAM_PAL*4; j+=TAM_PAL){
+         printf("TABLA PAGINAS MEM FISICA %02X %02X %02X %02X\n", memFisica.memoria[frame+j], memFisica.memoria[frame+j+1],
+               memFisica.memoria[frame+j+2], memFisica.memoria[frame+j+3]);
+      }
+   }
+}
 

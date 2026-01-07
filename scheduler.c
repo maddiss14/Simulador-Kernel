@@ -72,6 +72,7 @@ static void ejec_hilo(hilo_t *hilo, core_t *core)
       
          int fallo = 0;
          unsigned char instr[TAM_PAL] = {0};
+         printf_tablaPag(memVirtual.tablas[hilo->r_pcb->mm.pgb]);
          mm_read(hilo, hilo->PC, instr, &fallo);
          if(fallo){
             printf("   Hilo %d ejecutando proceso %d: en VA=0x%08X\n", hilo->id_hilo, hilo->r_pcb->pid, hilo->PC);
