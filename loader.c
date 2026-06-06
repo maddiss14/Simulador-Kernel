@@ -7,10 +7,6 @@
 #include "memoria.h"
 #include "process_generator.h"
 
-pthread_cond_t loader_cond = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t loader_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-
 void read_prog(char *filename, PCB *proceso)
 {
    struct stat st;
@@ -21,7 +17,7 @@ void read_prog(char *filename, PCB *proceso)
    char *linea;
    int *frames;
    int aux,cont;
-   char *buf, *buf_cp;
+   char *buf;
    size_t leido;
    int chunk;
    unsigned char instr[TAM_PAL] = {0};
@@ -54,17 +50,9 @@ void read_prog(char *filename, PCB *proceso)
       exit(1);
    }
 
-   buf_cp = strndup(buf, tam_fich);
-   if(!buf_cp){
-      perror("Error al copiar el bufer\n");
-      free(buf);
-      exit(1);
-   }
-   
    linea = strtok(buf, "\n"); //Separar por lineas
    if(!linea){
       perror("No se ha podido leer cabecera .txt\n");
-      free(buf_cp);
       free(buf);
       exit(1);
    }
@@ -74,7 +62,6 @@ void read_prog(char *filename, PCB *proceso)
    linea=strtok(NULL, "\n");
    if(!linea){
       perror("No se ha podido leer la cabecera .dat\n");
-      free(buf_cp);
       free(buf);
    }
    
@@ -88,7 +75,6 @@ void read_prog(char *filename, PCB *proceso)
    if(val_data < 0 || val_text < 0){
       perror("Offsets inválidos tam_data\n");
       free(buf);
-      free(buf_cp);
       exit(1);
    }
    pag_text = (tam_text + TAM_PAGE-1) / TAM_PAGE;
@@ -99,7 +85,6 @@ void read_prog(char *filename, PCB *proceso)
    if(!frames){
       perror("Error reservar frames\n");
       free(buf);
-      free(buf_cp);
       exit(1);
    }
    printf("PAG_TOT %d\n", pag_tot);
@@ -107,14 +92,12 @@ void read_prog(char *filename, PCB *proceso)
       perror("Error al asignar los frames libres\n");
       free(frames);
       free(buf);
-      free(buf_cp);
       exit(1);
    }
    page_table_t *tabla = crear_tabla(pag_tot, frames, proceso->pid);
    if(!tabla){
       perror("Error al crear la tabla de páginas\n");
       free(frames);
-      free(buf_cp);
       free(buf);
       exit(1);
    }
@@ -122,7 +105,6 @@ void read_prog(char *filename, PCB *proceso)
    if(pgb < 0){
       perror("Error al añadir la tabla de páginas\n");
       free(frames);
-      free(buf_cp);
       free(buf);
       exit(1);
    }
@@ -139,7 +121,7 @@ void read_prog(char *filename, PCB *proceso)
          }
          memcpy(memFisica.memoria + frame*TAM_PAGE + copied, instr, TAM_PAL);
          printf("INSTR = %02X %02X %02X %02X\n", instr[0], instr[1], instr[2], instr[3]);
-         printf("MEMORIA = %02X %02X %02X %02X\n", memFisica.memoria[frame*TAM_PAGE+copied], memFisica.memoria[frame*TAM_PAGE+copied+1], 
+         printf("MEMORIAFISICA = %02X %02X %02X %02X\n", memFisica.memoria[frame*TAM_PAGE+copied], memFisica.memoria[frame*TAM_PAGE+copied+1], 
                  memFisica.memoria[frame*TAM_PAGE+copied+2], memFisica.memoria[frame*TAM_PAGE+copied+3]);
          copied += TAM_PAL;
          linea = strtok(NULL, "\n");
@@ -160,7 +142,6 @@ void read_prog(char *filename, PCB *proceso)
             sscanf(linea+(j*2), "%2hhx", &instr[j]);
          }
          memcpy(memFisica.memoria + frame*TAM_PAGE + copied, instr, TAM_PAL);
-         printf("MEMORIA = %d\n", memFisica.memoria[frame*TAM_PAGE]);
          printf("DATA = %02X %02X %02X %02X\n", instr[0], instr[1], instr[2], instr[3]);
          copied += TAM_PAL;
          linea = strtok(NULL, "\n");
@@ -171,11 +152,10 @@ void read_prog(char *filename, PCB *proceso)
    }
    pthread_mutex_unlock(&mem_mutex);
    
-   proceso->mm.code = 0;
-   proceso->mm.data = tam_text;
+   proceso->mm.code = val_text;
+   proceso->mm.data = val_data;
    proceso->mm.pgb = pgb;
 
    free(frames);
-   free(buf_cp);
    free(buf);
 }

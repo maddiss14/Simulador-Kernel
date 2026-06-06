@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pthread.h>
+#include <stdint.h>
 
 extern int frecMin_pGen;
 extern int frecMax_pGen;
