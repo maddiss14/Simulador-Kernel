@@ -256,9 +256,9 @@ void *generator_thread(void *arg){
       char ruta[4096];
       snprintf(ruta, sizeof(ruta), "../prometheus/prog%03d.elf", pid_gen);
       printf("Ruta %s\n", ruta);
-      read_prog(ruta, nuevo);
       nuevo->pid=pid_gen++;
       nuevo->vida= rand() % 10 + 7;
+      read_prog(ruta, nuevo);
       if (r_colaColas.size > 0) {
          nuevo->prio = rand() % r_colaColas.size;
       } else {

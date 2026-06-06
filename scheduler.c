@@ -11,6 +11,7 @@
 
 pthread_cond_t scheduler_cond = PTHREAD_COND_INITIALIZER;
 
+//Comprueba si hay un proceso preparado con mayor prioridad
 static int hay_mayor_prioridad(hilo_t *hilo) {
     if (hilo->r_pcb==NULL) return 0;
 
@@ -27,6 +28,7 @@ static int hay_mayor_prioridad(hilo_t *hilo) {
     return 0;
 }
 
+//Devuelve 1 si hay procesos preparados
 static int hay_preparados_en_colas()
 {
    if (r_colaColas.num_colas == 0 || r_colaColas.colaPrio == NULL) return 0;
@@ -40,11 +42,12 @@ static int hay_preparados_en_colas()
 static void ejec_hilo(hilo_t *hilo, core_t *core)
 {
    if(!hilo || !hilo->r_pcb) return;
-
-   if(hilo->quantum == 0 || hilo->r_pcb->vida == 0){
+  
+   //Se le ha acabado el quantum o al proceso en ejecución no le queda vida
+   if(core->quantum == 0 || hilo->r_pcb->vida == 0){
 
       if(hilo->r_pcb->vida > 0){
-
+         //Política expulsora por quantum
          if(hay_preparados_en_colas()){
             printf("   Hilo %d cede CPU: proceso %d quantum acabado\n",
                    hilo->id_hilo, hilo->r_pcb->pid);
@@ -55,7 +58,7 @@ static void ejec_hilo(hilo_t *hilo, core_t *core)
             hilo->estado = 2;      /* sin proceso */
             core->ejec = -1;       /* libera el core */
          }else{
-            hilo->quantum = QUANTUM;
+            core->quantum = QUANTUM;
          }
       }else{
          printf("   Proceso %d terminado en hilo %d\n", hilo->r_pcb->pid, hilo->id_hilo);
@@ -65,7 +68,7 @@ static void ejec_hilo(hilo_t *hilo, core_t *core)
       }
    }
 
-   if(hilo->estado == 1 && hilo->quantum>0){
+   if(hilo->estado == 1 && core->quantum>0){
       printf("   Hilo %d ejecutando proceso %d\n", hilo->id_hilo, hilo->r_pcb->pid);
       printf("      Proceso %d ptbr %d data %d\n", hilo->r_pcb->pid, hilo->r_pcb->mm.pgb, hilo->r_pcb->mm.data);
       if(memVirtual.tablas && hilo->PTBR >= 0 && hilo->PTBR < memVirtual.num_tablas && memVirtual.tablas[hilo->PTBR]){
@@ -80,44 +83,99 @@ static void ejec_hilo(hilo_t *hilo, core_t *core)
             printf("INSTRUCCION PC=0x%08X INSTR =%02X %02X %02X %02X\n", hilo->PC, instr[0], instr[1], instr[2], instr[3]);
             hilo->PC +=TAM_PAL;
          }
-         hilo->quantum--;
+         core->quantum--;
       }
    }
 }
 
+static void elim_proc_sin_vida_colas(){
+  for(int i = 0; i<r_colaColas.num_colas; i++){
+    p_queue *queue = r_colaColas.colaPrio[i];
+    if(queue != NULL && queue->num_process > 0){
+      for(int j=0; j<queue->num_process; j++){
+        if(queue->lista[j] != NULL && queue->lista[j]-> vida <= 0){
+          printf("Proceso %d eliminado de la cola (sin vida)\n", queue->lista[j]->pid);
+          free(queue->lista[j]);
+          queue->lista[j] = NULL;
+            
+            //Mover array
+          for(int k= j; k< queue->num_process -1; k++){
+            queue->lista[k] = queue->lista[k+1];
+          }
+          queue->num_process--;
+          queue->lista[queue->num_process] = NULL;
+          
+          //Actualizar punteros
+          if(queue->num_process > 0){
+            queue->first = queue->lista[0];
+            queue->last = queue->lista[queue->num_process-1];
+          }else{
+            queue->first = NULL;
+            queue->last = NULL;
+          }
+        }
+      }
+    }
+  }
+}
+
+static void elim_proc_sin_vida_ejec(){
+  for(int i=0; i<machine.num_cpu;i++){
+    cpu_t *cpu = &machine.cpus[i];
+    for(int j=0; j<machine.num_core;j++){
+      core_t *core = &cpu->cores[j];
+      for(int k=0; k<machine.num_hilos; k++){
+        hilo_t *hilo = &core->hilos[k];
+        if(hilo->r_pcb != NULL && hilo->r_pcb->vida <= 0){
+          printf("Proceso %d se ha quedado sin vida en hilo %d.%d.%d\n", hilo->r_pcb->pid, i, j, k);
+          free(hilo->r_pcb);
+          hilo->r_pcb = NULL;
+          hilo->estado = 2;
+          core->ejec = -1;
+        }
+      }
+    }
+  }
+}
+
 static void reducir_vida()
 {
-   for(int i=0; i<machine.num_cpu; i++){
-      cpu_t *cpu = &machine.cpus[i];
-      
-      for(int j=0; j<machine.num_core; j++){
-         core_t *core = &cpu->cores[j];
-         //printf("Ejecutando core %d\n",j);
-     
-         for(int k=0; k<machine.num_hilos;k++){
-            hilo_t *hilo = &core->hilos[k];
-            
-            if(hilo->r_pcb==NULL){
-               hilo->r_pcb = sig_process(&r_colaColas);
-            
-	       if(hilo->r_pcb != NULL){
-                  hilo->estado = 0;
-               }else return;
-	    }
-	    
-            if(hilo->r_pcb->vida>0){
-               printf("Hilo %d ejecutando proceso %d\n",hilo->id_hilo, hilo->r_pcb->pid);
-               hilo->r_pcb->vida--;
-            }
-            if(hilo->r_pcb->vida == 0){
-               printf("Hilo %d proceso %d se ha quedado sin vida\n", hilo->id_hilo, hilo->r_pcb->vida);
-               free(hilo->r_pcb);
-               hilo->r_pcb = NULL;
-               hilo->estado = 2;
-            }
-         }
+  for(int i=0; i<r_colaColas.num_colas; i++){
+    p_queue *queue = r_colaColas.colaPrio[i];
+    if(queue != NULL){
+      for(int j = 0; j< queue->num_process; j++){
+        if(queue->lista[j] != NULL && queue->lista[j]->vida > 0){
+          queue->lista[j]->vida--;
+        }
       }
-   }   
+    }
+  }
+  for(int i=0; i<f_colaColas.num_colas; i++){
+    p_queue *queue = f_colaColas.colaPrio[i];
+    if(queue != NULL){
+      for(int j=0; j<queue->num_process; j++){
+        if(queue->lista[j]->vida > 0){
+          queue->lista[j]->vida--;
+        }
+      }
+    }
+  }
+  
+  for(int i=0; i<machine.num_cpu; i++){
+    cpu_t *cpu = &machine.cpus[i];
+    for(int j=0; j<machine.num_core; j++){
+      core_t *core = &cpu->cores[j];
+      for(int k=0; k<machine.num_hilos; k++){
+        hilo_t *hilo = &core->hilos[k];
+        if(hilo->r_pcb != NULL && hilo->r_pcb->vida > 0){
+          hilo->r_pcb->vida--;
+        }
+      }
+    }
+  }
+  elim_proc_sin_vida_colas();
+  
+  elim_proc_sin_vida_ejec();
 }
 
 static void asig_process(){
@@ -138,7 +196,7 @@ static void asig_process(){
                      hilo->PTBR = hilo->r_pcb->mm.pgb;
                      hilo->PC = hilo->r_pcb->mm.code;
                      hilo->estado = 1;
-                     hilo->quantum = QUANTUM;
+                     core->quantum = QUANTUM;
                      core->ejec = hilo->id_hilo;
                      break;
                   }
@@ -163,7 +221,7 @@ static void ejec_process()
 
             if(hilo->estado == 0 && hilo->r_pcb != NULL && core->ejec == -1){
                hilo->estado = 1;
-               hilo->quantum = QUANTUM;
+               core->quantum = QUANTUM;
                core->ejec = k;
             }
 
@@ -177,7 +235,7 @@ static void ejec_process()
 
                   if (hilo->r_pcb != NULL){
                      hilo->estado = 1;
-                     hilo->quantum = QUANTUM;
+                     core->quantum = QUANTUM;
                      core->ejec = k;
                      ejec_hilo(hilo, core);
                   }else{

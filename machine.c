@@ -41,6 +41,7 @@ void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_time
          core->id_core = j;
 	 core->hilos = NULL;
 	 core->ejec = -1;
+	 core->quantum = QUANTUM;
          core->hilos = malloc(sizeof(hilo_t) * num_hilos);
 	 if(core->hilos == NULL){
 	    perror("Error al crear los hilos\n");
@@ -51,7 +52,6 @@ void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_time
 	    hilo_t *hilo = &core->hilos[k];
 	    hilo->id_hilo = k;
 	    hilo->r_pcb = NULL;
-	    hilo->quantum = QUANTUM;
 	    hilo->estado = 2;
 	    hilo->PC = 0;
 	    hilo->PTBR = -1;

@@ -6,9 +6,9 @@ extern int frecMin_pGen;
 extern int frecMax_pGen;
 
 typedef struct{
-   int code;
-   int data;
-   int pgb;
+   uint32_t code;
+   uint32_t data;
+   uint32_t pgb;
 } mm_t;
 
 typedef struct PCB{

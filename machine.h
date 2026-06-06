@@ -19,7 +19,6 @@ typedef struct MMU{
 typedef struct{
    int id_hilo;
    PCB *r_pcb;
-   int quantum;
    int estado; // 0 preparado 1 ejecutando 2 finalizado
    int PC;
    int PTBR;
@@ -30,6 +29,7 @@ typedef struct{
    int id_core;
    int ejec; //Hilo que está ejecutandose
    hilo_t *hilos;
+   int quantum;
 } core_t;
 
 typedef struct{
