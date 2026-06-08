@@ -5,7 +5,7 @@
 
 #define TAM_P_MEM (1 << 26) //64MB =  2²⁴ * 4B
 #define TAM_PAL 4
-#define TAM_PAGE 4096 //4KB
+#define TAM_PAGE 128 //4KB
 #define NUM_FRAMES (TAM_P_MEM/TAM_PAGE)
 
 typedef struct{

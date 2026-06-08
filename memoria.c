@@ -181,6 +181,7 @@ page_table_t *crear_tabla(int num_pages, const int *frames, int pid)
    for(int i=0; i<num_pages; i++){
       int frame = frames[i];
       tabla->pages[i].frame_id = frame;
+      printf("    Frame asignado: %d\n", frame);
       tabla->pages[i].valida = 1;
   }
   return tabla;
@@ -196,14 +197,14 @@ void eliminaet_p_mem(){
 }
 
 void printf_tablaPag(page_table_t *tabla){
-   for(int i=0; i<tabla->num_pages; i++){
+  for(int i=0; i<tabla->num_pages; i++){
       int frame = tabla->pages[i].frame_id;
-      int base = frame*TAM_PAL*4;
-      for(int j=0; j<TAM_PAL*4; j+=TAM_PAL){
+      int base = frame*TAM_PAGE;
+      for(int j=0; j<(TAM_PAGE/TAM_PAL); j+=TAM_PAL){
          printf("Frame: %d, j: %d \n", frame, j);
          printf("TABLA PAGINAS MEM FISICA %02X %02X %02X %02X\n", memFisica.memoria[base+j], memFisica.memoria[base+j+1],
                memFisica.memoria[base+j+2], memFisica.memoria[base+j+3]);
-      }
-   }
+    }
+    if(i == 2) exit(1);
+  }
 }
-
