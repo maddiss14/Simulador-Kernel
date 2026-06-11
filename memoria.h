@@ -7,6 +7,7 @@
 #define TAM_PAL 4
 #define TAM_PAGE 128 //4KB
 #define NUM_FRAMES (TAM_P_MEM/TAM_PAGE)
+#define KERNEL_FRAMES 128
 
 typedef struct{
    int frame_id; //indice del frame físico
@@ -17,6 +18,7 @@ typedef struct{
    page_t *pages;
    int num_pages;
    int id;
+   uint32_t phys_addr;
 }page_table_t;
 
 typedef struct{
@@ -36,6 +38,7 @@ typedef struct{
    frame_t *frames;
    int next_frame;
    int num_tables;
+   int kernel_next;
 } physical_mem_t;
 
 extern physical_mem_t memFisica;

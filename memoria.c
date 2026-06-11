@@ -81,15 +81,44 @@ static void hay_capacidad(int nec){
    }
 }
 
+
+static int kernel_hay_capacidad(int frames){
+  return(memFisica.kernel_next + frames <= KERNEL_FRAMES);
+}
+
+static void *kernel_alloc(int frames){
+  if(!kernel_hay_capacidad(frames)) return NULL;
+  
+  void *ptr = memFisica.memoria + memFisica.kernel_next;
+  memFisica.kernel_next += frames;
+  
+  return ptr;
+}
+
 int add_ptable(page_table_t *tabla)
 {
-   if(!tabla) return -1;
+  if(!tabla) return -1;
    
-   hay_capacidad(memVirtual.num_tablas + 1);
-   memVirtual.tablas[memVirtual.num_tablas] = tabla;
-   tabla->id = memVirtual.num_tablas;
-   memVirtual.num_tablas++;
-   return tabla->id;
+  int frames_nec = (sizeof(page_table_t) + sizeof(page_t) * tabla->num_pages + TAM_PAGE -1)/TAM_PAGE;
+   
+  pthread_mutex_lock(&mem_mutex);
+   
+  if(!kernel_hay_capacidad(frames_nec)){
+    pthread_mutex_unlock(&mem_mutex);
+    printf("No hay suficiente espacio en la memoria kernel\n");
+    return -1;
+  }
+  
+  int base = memFisica.kernel_next;
+  memFisica.kernel_next += frames_nec;
+  pthread_mutex_unlock(&mem_mutex);
+  tabla->id = memVirtual.num_tablas;
+  tabla->phys_addr = base;
+  
+  memVirtual.tablas[memVirtual.num_tablas] = tabla;
+  memVirtual.num_tablas++;
+  
+  return tabla->phys_addr;
 }
 
 void virt_mem_init(){
@@ -119,13 +148,19 @@ void phys_mem_init(){
       perror("Error al generar los frames de la memoría física\n");
       exit(1);
    }
+  
+  memFisica.next_frame = 0;
+  memFisica.num_tables = 0;
    
-   memFisica.next_frame = 0;
-   memFisica.num_tables = 0;
-   
-   frame_init();
-   
-   pthread_mutex_unlock(&mem_mutex);
+  frame_init();
+     
+  for(int i=0; i< (KERNEL_FRAMES); i++){
+    memFisica.frames[i].libre = 0;
+    memFisica.frames[i].pid = -1;
+    memFisica.frames[i].pagina = -1;
+  }
+  memFisica.kernel_next = 0;
+  pthread_mutex_unlock(&mem_mutex);
 }
 
 //Asignar los frames disponibles
