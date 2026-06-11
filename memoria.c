@@ -12,7 +12,7 @@ pthread_mutex_t mem_mutex = PTHREAD_MUTEX_INITIALIZER;
 int id_table = 0;
 
 
-static unsigned char *translate_dir(const hilo_t *hilo,int va, int *page_fault){
+unsigned char *translate_dir(const hilo_t *hilo,int va, int *page_fault){
    if(page_fault) *page_fault = 0;
    
    if(!memVirtual.tablas || hilo->PTBR < 0 || hilo->PTBR >= memVirtual.num_tablas){
@@ -42,7 +42,7 @@ static unsigned char *translate_dir(const hilo_t *hilo,int va, int *page_fault){
 void mm_read(hilo_t *hilo, int va, char *out, int *fault)
 {
    for(int i=0; i< TAM_PAL; i++){
-      unsigned char *pal = translate_dir(hilo, va, fault);
+      unsigned char *pal = translate_dir(hilo, va+i, fault);
       if(!pal || fault) return;
       out[i] = *pal;
    }

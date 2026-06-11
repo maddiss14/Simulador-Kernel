@@ -72,20 +72,22 @@ static void ejec_hilo(hilo_t *hilo, core_t *core)
       printf("   Hilo %d ejecutando proceso %d\n", hilo->id_hilo, hilo->r_pcb->pid);
       printf("      Proceso %d ptbr %d data %d\n", hilo->r_pcb->pid, hilo->r_pcb->mm.pgb, hilo->r_pcb->mm.data);
       if(memVirtual.tablas && hilo->PTBR >= 0 && hilo->PTBR < memVirtual.num_tablas && memVirtual.tablas[hilo->PTBR]){
-      
-        int fallo = 0;
-        unsigned char instr[TAM_PAL] = {0};
-        printf_tablaPag(memVirtual.tablas[hilo->r_pcb->mm.pgb]);
-        int frame = memVirtual.tablas[hilo->r_pcb->mm.pgb]->pages[0].frame_id;
-        int base = frame*TAM_PAGE;
-         printf("LOLOLO %02X %02X %02X %02X\n", memFisica.memoria[base], memFisica.memoria[base+1], memFisica.memoria[base+2], memFisica.memoria[base+3]);
-         mm_read(hilo, hilo->PC, instr, &fallo);
-         if(fallo){
-            printf("   Hilo %d ejecutando proceso %d: en VA=0x%08X\n", hilo->id_hilo, hilo->r_pcb->pid, hilo->PC);
-         }else{
-            printf("INSTRUCCION PC=0x%08X INSTR =%02X %02X %02X %02X\n", hilo->PC, instr[0], instr[1], instr[2], instr[3]);
-            hilo->PC +=TAM_PAL;
-         }
+        unsigned char instr[TAM_PAL];
+        page_table_t *tabla = memVirtual.tablas[hilo->PTBR];
+        int vpn = hilo->PC / TAM_PAGE;
+        int offset = hilo->PC % TAM_PAGE;
+        
+        if(vpn >= tabla->num_pages){
+          printf("Page fault: VPN %d fuera de rango\n", vpn);
+          return;
+        }
+        int frame = tabla->pages[vpn].frame_id;
+        int pa = frame * TAM_PAGE + offset;
+        memcpy(instr, memFisica.memoria + pa, TAM_PAL);
+        printf("INSTRUCCION PC=0x%08X PA=%d -> %02X %02X %02X %02X\n", hilo->PC, instr[0], instr[1], instr[2], instr[3]);
+        
+        //ejecutar_instruccion(hilo, instr);
+        hilo->PC +=TAM_PAL;
          core->quantum--;
       }
    }
