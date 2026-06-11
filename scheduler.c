@@ -73,9 +73,12 @@ static void ejec_hilo(hilo_t *hilo, core_t *core)
       printf("      Proceso %d ptbr %d data %d\n", hilo->r_pcb->pid, hilo->r_pcb->mm.pgb, hilo->r_pcb->mm.data);
       if(memVirtual.tablas && hilo->PTBR >= 0 && hilo->PTBR < memVirtual.num_tablas && memVirtual.tablas[hilo->PTBR]){
       
-         int fallo = 0;
-         unsigned char instr[TAM_PAL] = {0};
-         printf_tablaPag(memVirtual.tablas[hilo->r_pcb->mm.pgb]);
+        int fallo = 0;
+        unsigned char instr[TAM_PAL] = {0};
+        printf_tablaPag(memVirtual.tablas[hilo->r_pcb->mm.pgb]);
+        int frame = memVirtual.tablas[hilo->r_pcb->mm.pgb]->pages[0].frame_id;
+        int base = frame*TAM_PAGE;
+         printf("LOLOLO %02X %02X %02X %02X\n", memFisica.memoria[base], memFisica.memoria[base+1], memFisica.memoria[base+2], memFisica.memoria[base+3]);
          mm_read(hilo, hilo->PC, instr, &fallo);
          if(fallo){
             printf("   Hilo %d ejecutando proceso %d: en VA=0x%08X\n", hilo->id_hilo, hilo->r_pcb->pid, hilo->PC);
