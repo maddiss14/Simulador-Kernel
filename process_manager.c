@@ -1,8 +1,35 @@
+#include <pthread.h>
 #include <stdio.h>
 #include <memory.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+
 #include "process_generator.h"
 #include "machine.h"
+#include "memoria.h"
+
+static int tlb_acc(hilo_t *hilo, int pag_num){
+  MMU mm = hilo->mmu;
+  for(int i=0; i< TLB_ENTRIES; i++){
+    if(mm.tlb[i].val && mm.tlb[i].vpn==pag_num) return mm.tlb[i].frame;
+  }
+  return -1;
+}
+
+static int add_tlb(hilo_t *hilo, int pag_num, int marco){
+  MMU mm = hilo->mmu;
+  for(int i=0; i< TLB_ENTRIES; i++){
+    if(!mm.tlb[i].val){
+      mm.tlb[i].val = 1;
+      mm.tlb[i].vpn = pag_num;
+      mm.tlb[i].frame = marco;
+      printf("Entrada añadida a la TLB\n");
+      return 1;
+    }
+  }
+  return -1;
+}
 
 static void elim_proc_sin_vida_colas(){
   for(int i = 0; i<r_colaColas.num_colas; i++){
@@ -54,6 +81,24 @@ static void elim_proc_sin_vida_ejec(){
   }
 }
 
+void ejecutar_instr(hilo_t *hilo, unsigned char instr[4])
+{
+  unsigned int inst = ((unsigned int)instr[0] << 24) | ((unsigned int)instr[1] << 16) | ((unsigned int)instr[2] << 8) | ((unsigned int)instr[3]);
+  
+  unsigned int opcode = (inst >> 28) & 0xF;
+  
+  int reg;
+  int dir;
+  
+  switch(opcode){
+  
+    case 0x0: //LD
+    {
+      reg = (inst >> 24) & 0xF;
+    }
+  }
+}
+
 void reducir_vida()
 {
   for(int i=0; i<r_colaColas.num_colas; i++){
@@ -93,4 +138,48 @@ void reducir_vida()
   
   elim_proc_sin_vida_ejec();
 }
+
+void ejec_hilo(){
+
+  for(int i=0; i<machine.num_cpu; i++){
+    cpu_t *cpu = &machine.cpus[i];
+
+    for(int j=0; j<machine.num_core; j++){
+      core_t *core = &cpu->cores[j];
+
+      for(int k=0; k<machine.num_hilos; k++){
+        hilo_t *hilo = &core->hilos[k];
+        if(!hilo || !hilo->r_pcb) continue;
+    
+        //Se le ha acabado el quantum o al proceso en ejecución no le queda vida
+        if(core->quantum > 0 || hilo->r_pcb->vida > 0){        
+          if(hilo->estado == 1 && core->quantum>0){
+            printf("   Hilo %d ejecutando proceso %d\n", hilo->id_hilo, hilo->r_pcb->pid);
+            printf("      Proceso %d ptbr %d data %d\n", hilo->r_pcb->pid, hilo->r_pcb->mm.pgb, hilo->r_pcb->mm.data);
+            if(memVirtual.tablas && hilo->PTBR >= 0 && hilo->PTBR < memVirtual.num_tablas && memVirtual.tablas[hilo->PTBR]){
+              unsigned char instr[TAM_PAL];
+              page_table_t *tabla = memVirtual.tablas[hilo->PTBR];
+              int vpn = hilo->PC / TAM_PAGE;
+              int offset = hilo->PC % TAM_PAGE;
+                
+              if(vpn >= tabla->num_pages){
+                printf("Page fault: VPN %d fuera de rango\n", vpn);
+                return;
+              }
+              int frame = tabla->pages[vpn].frame_id;
+              int pa = frame * TAM_PAGE + offset;
+              memcpy(instr, memFisica.memoria + pa, TAM_PAL);
+              printf("INSTRUCCION PC=0x%08X PA=%d -> %02X %02X %02X %02X\n", hilo->PC, pa, instr[0], instr[1], instr[2], instr[3]);
+              ejecutar_instr(hilo, instr);
+              //ejecutar_instruccion(hilo, instr);
+              hilo->PC +=TAM_PAL;
+              core->quantum--;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+      
 

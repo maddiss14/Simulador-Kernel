@@ -6,14 +6,14 @@
 #define TLB_ENTRIES 16
 
 typedef struct TLB{
-   int val;
-   int pres;
-   int ref;
-   int dirty;
+   int val;  //Entrada válida
+   int pid; 
+   int vpn;  //Página Virtual
+   int frame;//Frame físico 
 } TLB;
 
 typedef struct MMU{
-   TLB *tlb;
+   TLB tlb[TLB_ENTRIES];
 } MMU;
 
 typedef struct{

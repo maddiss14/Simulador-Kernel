@@ -18,7 +18,6 @@ typedef struct{
    page_t *pages;
    int num_pages;
    int id;
-   uint32_t phys_addr;
 }page_table_t;
 
 typedef struct{

@@ -113,12 +113,11 @@ int add_ptable(page_table_t *tabla)
   memFisica.kernel_next += frames_nec;
   pthread_mutex_unlock(&mem_mutex);
   tabla->id = memVirtual.num_tablas;
-  tabla->phys_addr = base;
   
   memVirtual.tablas[memVirtual.num_tablas] = tabla;
   memVirtual.num_tablas++;
   
-  return tabla->phys_addr;
+  return base;
 }
 
 void virt_mem_init(){

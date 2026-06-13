@@ -3,14 +3,14 @@
 #include "machine.h"
 
 machine_t machine;
- 
+
 static void restart_tlb(hilo_t *hilo){
-   for(int i=0; i< TLB_ENTRIES; i++){
-      hilo->mmu.tlb[i].val = -1;
-      hilo->mmu.tlb[i].pres = 0;
-      hilo->mmu.tlb[i].ref = 0;
-      hilo->mmu.tlb[i].dirty = 0;
-   }
+  for(int i = 0; i< TLB_ENTRIES; i++){
+    hilo->mmu.tlb[i].val = 0;
+    hilo->mmu.tlb[i].vpn = -1;
+    hilo->mmu.tlb[i].frame = -1;
+    hilo->mmu.tlb[i].pid = -1;
+  }
 }
 
 void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_timer, int frec_min_pGen, int frec_max_pGen){
@@ -41,7 +41,7 @@ void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_time
          core->id_core = j;
 	 core->hilos = NULL;
 	 core->ejec = -1;
-	 core->quantum = QUANTUM;
+	 core->quantum = QUANTUM*frec_timer;
          core->hilos = malloc(sizeof(hilo_t) * num_hilos);
 	 if(core->hilos == NULL){
 	    perror("Error al crear los hilos\n");
@@ -55,7 +55,7 @@ void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_time
 	    hilo->estado = 2;
 	    hilo->PC = 0;
 	    hilo->PTBR = -1;
-	    hilo->mmu.tlb = (TLB *)calloc(TLB_ENTRIES, sizeof(TLB));
+    
 	    restart_tlb(hilo);
 	    printf("      Hilo %d generado\n", hilo->id_hilo);
          }

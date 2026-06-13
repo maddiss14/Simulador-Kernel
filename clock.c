@@ -24,6 +24,7 @@ void *clock_thread(void *arg){
       frec_pGen = rand() % (frecMax_pGen-frecMin_pGen) + frecMin_pGen;
       sleep(1);
       pthread_mutex_lock(&clock_mutex);
+      ejec_hilo();
       reducir_vida();
       tick++;
       //printf("Clock tick: %d\n", tick);

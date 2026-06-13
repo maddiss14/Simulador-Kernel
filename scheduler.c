@@ -2,15 +2,26 @@
 #include <pthread.h>
 #include <memory.h>
 #include <stdlib.h>
+
 #include "clock.h"
 #include "timer.h"
 #include "scheduler.h"
 #include "process_generator.h"
 #include "machine.h"
 #include "memoria.h"
+#include "process_manager.h"
 
 pthread_cond_t scheduler_cond = PTHREAD_COND_INITIALIZER;
-
+  
+static void flush_tlb(hilo_t *hilo){
+  for(int i = 0; i< TLB_ENTRIES; i++){
+    hilo->mmu.tlb[i].val = 0;
+    hilo->mmu.tlb[i].vpn = -1;
+    hilo->mmu.tlb[i].frame = -1;
+    hilo->mmu.tlb[i].pid = -1;
+  }
+}
+    
 //Comprueba si hay un proceso preparado con mayor prioridad
 static int hay_mayor_prioridad(hilo_t *hilo) {
     if (hilo->r_pcb==NULL) return 0;
@@ -39,60 +50,6 @@ static int hay_preparados_en_colas()
    return 0;
 }
 
-static void ejec_hilo(hilo_t *hilo, core_t *core)
-{
-   if(!hilo || !hilo->r_pcb) return;
-  
-   //Se le ha acabado el quantum o al proceso en ejecución no le queda vida
-   if(core->quantum == 0 || hilo->r_pcb->vida == 0){
-
-      if(hilo->r_pcb->vida > 0){
-         //Política expulsora por quantum
-         if(hay_preparados_en_colas()){
-            printf("   Hilo %d cede CPU: proceso %d quantum acabado\n",
-                   hilo->id_hilo, hilo->r_pcb->pid);
-
-            add_process(hilo->r_pcb, &f_colaColas);
-
-            hilo->r_pcb = NULL;
-            hilo->estado = 2;      /* sin proceso */
-            core->ejec = -1;       /* libera el core */
-         }else{
-            core->quantum = QUANTUM;
-         }
-      }else{
-         printf("   Proceso %d terminado en hilo %d\n", hilo->r_pcb->pid, hilo->id_hilo);
-         hilo->r_pcb = NULL;
-         hilo->estado = 2;
-         core->ejec = -1;
-      }
-   }
-
-   if(hilo->estado == 1 && core->quantum>0){
-      printf("   Hilo %d ejecutando proceso %d\n", hilo->id_hilo, hilo->r_pcb->pid);
-      printf("      Proceso %d ptbr %d data %d\n", hilo->r_pcb->pid, hilo->r_pcb->mm.pgb, hilo->r_pcb->mm.data);
-      if(memVirtual.tablas && hilo->PTBR >= 0 && hilo->PTBR < memVirtual.num_tablas && memVirtual.tablas[hilo->PTBR]){
-        unsigned char instr[TAM_PAL];
-        page_table_t *tabla = memVirtual.tablas[hilo->PTBR];
-        int vpn = hilo->PC / TAM_PAGE;
-        int offset = hilo->PC % TAM_PAGE;
-        
-        if(vpn >= tabla->num_pages){
-          printf("Page fault: VPN %d fuera de rango\n", vpn);
-          return;
-        }
-        int frame = tabla->pages[vpn].frame_id;
-        int pa = frame * TAM_PAGE + offset;
-        memcpy(instr, memFisica.memoria + pa, TAM_PAL);
-        printf("INSTRUCCION PC=0x%08X PA=%d -> %02X %02X %02X %02X\n", hilo->PC, instr[0], instr[1], instr[2], instr[3]);
-        
-        //ejecutar_instruccion(hilo, instr);
-        hilo->PC +=TAM_PAL;
-         core->quantum--;
-      }
-   }
-}
-
 static void asig_process(){
    for(int i=0; i<machine.num_cpu; i++){
       cpu_t *cpu = &machine.cpus[i];
@@ -111,7 +68,7 @@ static void asig_process(){
                      hilo->PTBR = hilo->r_pcb->mm.pgb;
                      hilo->PC = hilo->r_pcb->mm.code;
                      hilo->estado = 1;
-                     core->quantum = QUANTUM;
+                     core->quantum = QUANTUM*machine.frec_timer;
                      core->ejec = hilo->id_hilo;
                      break;
                   }
@@ -122,7 +79,7 @@ static void asig_process(){
    }
 }
 
-static void ejec_process()
+void ejec_process()
 {
 
    for(int i=0; i<machine.num_cpu; i++){
@@ -136,7 +93,7 @@ static void ejec_process()
 
             if(hilo->estado == 0 && hilo->r_pcb != NULL && core->ejec == -1){
                hilo->estado = 1;
-               core->quantum = QUANTUM;
+               core->quantum = QUANTUM*machine.frec_timer;
                core->ejec = k;
             }
 
@@ -150,7 +107,7 @@ static void ejec_process()
 
                   if (hilo->r_pcb != NULL){
                      hilo->estado = 1;
-                     core->quantum = QUANTUM;
+                     core->quantum = QUANTUM*machine.frec_timer;
                      core->ejec = k;
                      ejec_hilo(hilo, core);
                   }else{
@@ -182,7 +139,6 @@ void *scheduler_thread(void *arg){
       pthread_cond_wait(&scheduler_cond, &clock_mutex);
       printf("Scheduler: %d\n", tick_timer);
       asig_process();
-      ejec_process();
       pthread_mutex_unlock(&clock_mutex);
    }
 }
