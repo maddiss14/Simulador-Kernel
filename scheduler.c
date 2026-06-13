@@ -132,13 +132,13 @@ void ejec_process()
    }
 }
 
-
 void *scheduler_thread(void *arg){
    while(running){
       pthread_mutex_lock(&clock_mutex);
       pthread_cond_wait(&scheduler_cond, &clock_mutex);
       printf("Scheduler: %d\n", tick_timer);
       asig_process();
+      ejec_process();
       pthread_mutex_unlock(&clock_mutex);
    }
 }

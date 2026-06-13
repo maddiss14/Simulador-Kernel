@@ -66,6 +66,8 @@ void ejecutar_instr(hilo_t *hilo, unsigned char instr[4])
   unsigned int opcode = (inst >> 28) & 0xF;
   page_table_t *tabla = memVirtual.tablas[hilo->PTBR];
   int reg = 0;
+  int reg1 = 0;
+  int reg2 = 0;
   int dir = 0;
   int fault = 0;
   switch(opcode){
@@ -73,7 +75,7 @@ void ejecutar_instr(hilo_t *hilo, unsigned char instr[4])
     case 0x0: //LD
     {
       reg = (inst >> 24) & 0xF;
-      dir = inst & 0xFFFFFF;
+      dir = inst & 0x00FFFFFF;
       
       unsigned char *ptr = translate_dir(hilo, dir, &fault);
       if(!ptr || fault){
@@ -83,9 +85,44 @@ void ejecutar_instr(hilo_t *hilo, unsigned char instr[4])
       
       unsigned int val = ((unsigned int)ptr[0] << 24) | ((unsigned int)ptr[1] << 16) | ((unsigned int)ptr[2] << 8) | ((unsigned int)ptr[3]);
       hilo->regs[reg] = val;
-      printf("LD R%d <-MEM[%d] = %u\n", reg, dir, val);
+      printf("LD R%d <-MEM[%d] = %d\n", reg, dir, val);
       break;
     }
+    
+    case 0x1:
+    {
+      reg = (inst >> 24) & 0xF;
+      dir = inst & 0x00FFFFFF;
+      
+      unsigned char *ptr = translate_dir(hilo, dir, &fault);
+      if(!ptr || fault){
+        printf("Page fault en LD\n");
+        break;
+      }
+      unsigned int val = hilo->regs[reg];
+      ptr[0] = (val >> 24) & 0xFF;
+      ptr[1] = (val >> 16) & 0xFF;
+      ptr[2] = (val >> 8) & 0xFF;
+      ptr[3] = (val) & 0xFF;
+      
+      printf("ST MEM[%d] <- R%d = %d\n", reg, dir, val);
+      break;
+    }
+    case 0x2:
+    {
+      reg = (inst >> 24) & 0xF;
+      reg1 = (inst >> 20) & 0xF;
+      reg2 = (inst >> 16) & 0xF;
+      hilo->regs[reg] = hilo->regs[reg1] + hilo->regs[reg2];
+      printf("ADD R%d = R%d + R%d = %d\n", reg, reg1, reg2, hilo->regs[reg]);
+      break;
+    }
+    case 0xF:
+    {
+      printf("El proceso %d ha terminado su ejecución\n", hilo->r_pcb->pid);
+      
+    }
+    
   }
 }
 
