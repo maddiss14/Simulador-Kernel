@@ -18,96 +18,6 @@
 //Variables globales
 pthread_cond_t generator_cond = PTHREAD_COND_INITIALIZER;
 
-void restart_politica(P_FCFS *colaColas){
-   for(int i=0; i<colaColas->num_colas; i++){
-      if(colaColas->colaPrio[i]!=NULL){
-         free(colaColas->colaPrio[i]->lista);
-         free(colaColas->colaPrio[i]);
-      }
-      colaColas->colaPrio[i] = NULL;
-   }
-   colaColas->num_colas = 0;
-   printf("Cola de prioridades reseteada \n");
-}
-
-//Inicialización las colas
-void politica_initializer(int numPrio, P_FCFS *colaColas)
-{
-   colaColas->colaPrio = malloc(sizeof(p_queue *) * numPrio);
-   colaColas->size = numPrio;
-
-   if(colaColas->colaPrio == NULL){
-      perror("Error al crear la cola de colas\n");
-      exit(1);
-   }
-   colaColas->num_colas = 0;
-   for(int i=0; i<colaColas->size; i++){
-      colaColas->colaPrio[i] = NULL;
-   }
-
-   printf("Cola de prioridades creada e inicializada\n");
-}
-
-void queue_initializer(int tam, p_queue *queue)
-{
-   if(queue == NULL){
-      perror("queue_initializer: queue es nulo\n");
-      exit(1);
-   }
-
-   queue->lista = malloc(sizeof(PCB *)* tam);
-   if(queue->lista == NULL){
-      perror("Error al crear la lista de punteros \n");
-      exit(1);
-   }
-
-   for (int i=0; i < tam; i++){
-      queue->lista[i]=NULL;
-   }
-
-   queue->size = tam;
-   queue->num_process = 0;
-   queue->first = NULL;
-   queue->last = NULL;
-}
-
-void eliminate_queues(P_FCFS *colaColas){
-   int pid;
-   int prio;
-
-   if(colaColas->colaPrio != NULL){
-      for(int i=0; i<colaColas->num_colas; i++){
-         printf("Cola %d:  \n", i);
-
-         if(colaColas->colaPrio[i]!=NULL){
-            p_queue *colaProces = colaColas->colaPrio[i];
-
-            for(int j=0; j<colaProces->num_process; j++){
-               PCB *actual = colaProces->lista[j];
-               pid = actual->pid;
-               prio = actual->prio;
-
-               free(actual);
-               printf("   Proceso liberado %d, prioridad %d \n", pid, prio);
-            }
-
-            free(colaProces->lista);
-            free(colaProces);
-            printf("Cola %d liberada\n\n", i);
-         }
-      }
-   }
-}
-
-//Liberar memoria
-void eliminate_politica(P_FCFS *colaColas)
-{
-   eliminate_queues(colaColas);
-
-   free(colaColas->colaPrio);
-   printf("Colas de prioridades liberadas\n");
-}
-
 PCB *sig_process(P_FCFS *colaColas)
 {
    if(colaColas->colaPrio != NULL){
@@ -216,10 +126,10 @@ void add_process(PCB *proceso, P_FCFS *colaColas)
             colaColas->num_colas++;
 
             anadir_process(nuevo, proceso);
-            printf("Lista de procesos añadida a la cola de prioridades posicion %d \n", i);
+            //printf("Lista de procesos añadida a la cola de prioridades posicion %d \n", i);
             return;
          }else{
-            printf("Cola de prioridades está llena no se ha podido añadir la nueva cola\n");
+            //printf("Cola de prioridades está llena no se ha podido añadir la nueva cola\n");
             free(proceso);
             return;
          }
@@ -241,10 +151,10 @@ void add_process(PCB *proceso, P_FCFS *colaColas)
       colaColas->num_colas++;
 
       anadir_process(nuevo, proceso);
-      printf("Nueva cola creada al final\n");
+      //printf("Nueva cola creada al final\n");
    }
    else{
-      printf("No se puede añadir una nueva cola\n");
+      //printf("No se puede añadir una nueva cola\n");
       free(proceso);
    }
 }
@@ -318,13 +228,13 @@ static void read_prog(char *filename, PCB *proceso)
    }
    
    sscanf(linea + 6, "%x", &val_data);
-   printf("Valor .data %d (0x%06X)\n", val_data, val_data);
+   //printf("Valor .data %d (0x%06X)\n", val_data, val_data);
 
    linea=strtok(NULL, "\n");
    tam_text = val_data;
    tam_data = (n_lineas*4) - tam_text - 8;
    
-   printf("tam_data: %d, tam_text%d , tam_fich%d \n", tam_data, tam_text, n_lineas);
+   //printf("tam_data: %d, tam_text%d , tam_fich%d \n", tam_data, tam_text, n_lineas);
    if(val_data < 0 || val_text < 0){
       perror("Offsets inválidos tam_data\n");
       free(buf);
@@ -407,6 +317,7 @@ void *generator_thread(void *arg){
       printf("Ruta %s\n", ruta);
       nuevo->pid=pid_gen++;
       nuevo->vida= rand() % 10 + 7;
+      nuevo->PC = -1;
       read_prog(ruta, nuevo);
       if (r_colaColas.size > 0) {
          nuevo->prio = rand() % r_colaColas.size;

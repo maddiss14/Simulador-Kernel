@@ -257,6 +257,5 @@ void printf_tablaPag(page_table_t *tabla){
          printf("TABLA PAGINAS MEM FISICA %02X %02X %02X %02X\n", memFisica.memoria[base+j], memFisica.memoria[base+j+1],
                memFisica.memoria[base+j+2], memFisica.memoria[base+j+3]);
     }
-    if(i == 2) exit(1);
   }
 }

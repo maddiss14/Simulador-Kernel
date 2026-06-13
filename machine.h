@@ -6,6 +6,8 @@
 #define TLB_ENTRIES 16
 #define NUM_REGS 16
 
+typedef struct PCB PCB;
+
 typedef struct TLB{
    int val;  //Entrada válida
    int pid; 
@@ -51,5 +53,8 @@ typedef struct{
 
 extern machine_t machine;
 
+void restart_tlb(hilo_t *hilo);
+void restart_hilo(hilo_t *hilo);
 void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_timer, int frec_min_pGen, int frec_max_pGen);
 void eliminate_machine();
+void cambiar_context(hilo_t *hilo, PCB *next_proc);

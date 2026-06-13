@@ -4,13 +4,37 @@
 
 machine_t machine;
 
-static void restart_tlb(hilo_t *hilo){
+void restart_tlb(hilo_t *hilo){
   for(int i = 0; i< TLB_ENTRIES; i++){
     hilo->mmu.tlb[i].val = 0;
     hilo->mmu.tlb[i].vpn = -1;
     hilo->mmu.tlb[i].frame = -1;
     hilo->mmu.tlb[i].pid = -1;
   }
+}
+
+void restart_hilo(hilo_t *hilo){
+  hilo->PC = -1;
+  hilo->PTBR = -1;
+  hilo->r_pcb = NULL;
+  hilo->estado = 2;
+  restart_tlb(hilo);
+  for(int i=0; i<NUM_REGS; i++){
+    hilo->regs[i] = 0;
+  }
+}
+
+void cambiar_context(hilo_t *hilo, PCB *next_proc){
+  hilo->r_pcb->PC = hilo->PC;
+  hilo->PC = next_proc->PC;
+  for(int i=0; i<NUM_REGS; i++){
+    hilo->r_pcb->regs[i] = hilo->regs[i];
+    hilo->r_pcb->regs[i] = next_proc->regs[i];
+  }
+  hilo->estado = 1;
+  hilo->PTBR = next_proc->mm.pgb;
+  restart_tlb(hilo);
+  hilo->r_pcb = next_proc;
 }
 
 void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_timer, int frec_min_pGen, int frec_max_pGen){
@@ -41,7 +65,7 @@ void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_time
          core->id_core = j;
 	 core->hilos = NULL;
 	 core->ejec = -1;
-	 core->quantum = QUANTUM*frec_timer;
+	 core->quantum = QUANTUM;
          core->hilos = malloc(sizeof(hilo_t) * num_hilos);
 	 if(core->hilos == NULL){
 	    perror("Error al crear los hilos\n");
