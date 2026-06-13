@@ -259,7 +259,7 @@ static void read_prog(char *filename, PCB *proceso)
    char *linea;
    int *frames, frame;
    int aux,cont;
-   char *buf;
+   char *buf, *bufcp;
    size_t leido;
    int chunk;
    unsigned char instr[TAM_PAL] = {0};
@@ -283,7 +283,8 @@ static void read_prog(char *filename, PCB *proceso)
    }
    
    buf = (char *)malloc(tam_fich);
-
+   bufcp =(char *)malloc(tam_fich);
+   
    leido = fread(buf, 1, tam_fich, file);
    fclose(file);
    if(leido != tam_fich){
@@ -291,7 +292,16 @@ static void read_prog(char *filename, PCB *proceso)
       free(buf);
       exit(1);
    }
-
+  
+  bufcp = strdup(buf);
+  int n_lineas = 0;
+  char *tmp = strtok(bufcp, "\n");
+  while(tmp){
+    n_lineas++;
+    tmp = strtok(NULL, "\n");
+  }
+  free(bufcp);
+  
    linea = strtok(buf, "\n"); //Separar por lineas
    if(!linea){
       perror("No se ha podido leer cabecera .txt\n");
@@ -311,9 +321,10 @@ static void read_prog(char *filename, PCB *proceso)
    printf("Valor .data %d (0x%06X)\n", val_data, val_data);
 
    linea=strtok(NULL, "\n");
-   tam_text = (val_data+12) - val_data;
-   tam_data = (tam_text+12) - val_text;
-   printf("tam_data: %d, tam_text %d \n", tam_data, tam_text);
+   tam_text = val_data;
+   tam_data = (n_lineas*4) - tam_text - 8;
+   
+   printf("tam_data: %d, tam_text%d , tam_fich%d \n", tam_data, tam_text, n_lineas);
    if(val_data < 0 || val_text < 0){
       perror("Offsets inválidos tam_data\n");
       free(buf);
@@ -361,8 +372,8 @@ static void read_prog(char *filename, PCB *proceso)
     }
     frame = frames[copied/TAM_PAGE];
     memcpy(memFisica.memoria + frame*TAM_PAGE + copied, instr, TAM_PAL);
-    //printf("COPIED = %02X %02X %02X %02X\n", memFisica.memoria[frame*TAM_PAGE+copied], memFisica.memoria[frame*TAM_PAGE+copied+1], 
-     //     memFisica.memoria[frame*TAM_PAGE+copied+2], memFisica.memoria[frame*TAM_PAGE+copied+3]);
+    //printf("COPIED = %02X %02X %02X %02X\n", memFisica.memoria[frame*TAM_PAGE+copied], //memFisica.memoria[frame*TAM_PAGE+copied+1], 
+//           memFisica.memoria[frame*TAM_PAGE+copied+2], memFisica.memoria[frame*TAM_PAGE+copied+3]);
     //printf(" Dirección que uso para acceder: %d\n Copied: %d, Frame: %d\n", frame*TAM_PAGE+copied, copied, frame);
     copied += TAM_PAL;
     linea = strtok(NULL, "\n");
