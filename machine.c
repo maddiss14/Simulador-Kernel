@@ -9,7 +9,7 @@ void restart_tlb(hilo_t *hilo){
     hilo->mmu.tlb[i].val = 0;
     hilo->mmu.tlb[i].vpn = -1;
     hilo->mmu.tlb[i].frame = -1;
-    hilo->mmu.tlb[i].pid = -1;
+    hilo->mmu.tlb[i].pid = -1; 
   }
 }
 
@@ -24,17 +24,26 @@ void restart_hilo(hilo_t *hilo){
   }
 }
 
-void cambiar_context(hilo_t *hilo, PCB *next_proc){
-  hilo->r_pcb->PC = hilo->PC;
-  hilo->PC = next_proc->PC;
-  for(int i=0; i<NUM_REGS; i++){
-    hilo->r_pcb->regs[i] = hilo->regs[i];
-    hilo->r_pcb->regs[i] = next_proc->regs[i];
+void cambiar_context(hilo_t *hilo, PCB *next_proc)
+{
+  PCB *act = hilo->r_pcb;
+  
+  if(act){
+    act->PC = hilo->PC;
+    for(int i=0; i<NUM_REGS; i++){
+      act->regs[i] = hilo->regs[i];
+    }
   }
-  hilo->estado = 1;
-  hilo->PTBR = next_proc->mm.pgb;
-  restart_tlb(hilo);
+  
   hilo->r_pcb = next_proc;
+  hilo->PTBR = next_proc->mm.pgb;
+  if(next_proc->PC != -1) hilo->PC = next_proc->PC;
+  else hilo->PC = next_proc->mm.code;
+  
+  for(int i=0; i<NUM_REGS; i++){
+    hilo->regs[i] = next_proc->regs[i];
+  }
+  restart_tlb(hilo);  
 }
 
 void machine_initializer(int num_cpu, int num_core, int num_hilos, int frec_timer, int frec_min_pGen, int frec_max_pGen){

@@ -71,7 +71,12 @@ void ejecutar_instr(core_t *core, hilo_t *hilo, unsigned char instr[4])
     case 0xF:
     {
       printf("\n   EL PROCESO %d HA TERMINADO SU EJECUCIÓN\n", hilo->r_pcb->pid);
-      hilo->r_pcb->vida = -1;
+      
+      PCB *p = hilo->r_pcb;
+      
+      p->vida = -1;
+      free(p);
+      
       hilo->r_pcb = NULL;
       hilo->estado = 2;
       core->ejec = -1;
@@ -105,10 +110,13 @@ void reducir_vida()
   
   for(int i=0; i<machine.num_cpu; i++){
     cpu_t *cpu = &machine.cpus[i];
+    
     for(int j=0; j<machine.num_core; j++){
       core_t *core = &cpu->cores[j];
+    
       for(int k=0; k<machine.num_hilos; k++){
         hilo_t *hilo = &core->hilos[k];
+        
         if(hilo->r_pcb != NULL && hilo->r_pcb->vida > 0){
           hilo->r_pcb->vida--;
         }
@@ -129,10 +137,11 @@ void ejec_hilo(){
         hilo_t *hilo = &core->hilos[k];
         if(!hilo || !hilo->r_pcb) continue;
 
-        if(core->quantum > 0 || hilo->r_pcb->vida > 0){        
+        if(core->quantum > 0 && hilo->r_pcb->vida > 0){        
           if(hilo->estado == 1 && core->quantum>0){
             printf("   Hilo %d ejecutando proceso %d\n", hilo->id_hilo, hilo->r_pcb->pid);
             printf("      Proceso %d ptbr %d data %d\n", hilo->r_pcb->pid, hilo->r_pcb->mm.pgb, hilo->r_pcb->mm.data);
+            
             if(memVirtual.tablas && hilo->PTBR >= 0 && hilo->PTBR < memVirtual.num_tablas && memVirtual.tablas[hilo->PTBR]){
               unsigned char instr[TAM_PAL];
               page_table_t *tabla = memVirtual.tablas[hilo->PTBR];
@@ -158,7 +167,8 @@ void ejec_hilo(){
             int hay=0;
             for(int l=0; l<machine.num_hilos; l++){
               if(hilo != &core->hilos[l]){
-                if(&core->hilos[l].estado==0){
+                if(core->hilos[l].estado == 0 && core->hilos[l].r_pcb != NULL)
+                {
                   add_process(hilo->r_pcb, &f_colaColas);
                   PCB *sig = core->hilos[l].r_pcb;
                   cambiar_context(hilo, sig);

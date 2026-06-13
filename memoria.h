@@ -7,7 +7,7 @@
 #define TAM_PAL 4
 #define TAM_PAGE 128 //4KB
 #define NUM_FRAMES (TAM_P_MEM/TAM_PAGE)
-#define KERNEL_FRAMES 128
+#define KERNEL_FRAMES 256
 
 typedef struct{
    int frame_id; //indice del frame físico

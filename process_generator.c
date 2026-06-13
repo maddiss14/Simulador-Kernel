@@ -193,7 +193,6 @@ static void read_prog(char *filename, PCB *proceso)
    }
    
    buf = (char *)malloc(tam_fich);
-   bufcp =(char *)malloc(tam_fich);
    
    leido = fread(buf, 1, tam_fich, file);
    fclose(file);
@@ -275,24 +274,24 @@ static void read_prog(char *filename, PCB *proceso)
    //Actualizar información del PCB
 
   copied = 0;
-  while(copied < (tam_text+tam_data)){
+  while(linea && copied < (tam_text+tam_data)){
     //Copiar como hex no ASCII
-    for(int i=0; i<TAM_PAL; i++){
-      sscanf(linea+(i*2), "%2hhx", &instr[i]);
-    }
+    sscanf(linea, "%2hhx%2hhx%2hhx%2hhx", &instr[0], &instr[1], &instr[2], &instr[3]);
+
     frame = frames[copied/TAM_PAGE];
-    memcpy(memFisica.memoria + frame*TAM_PAGE + copied, instr, TAM_PAL);
-    //printf("COPIED = %02X %02X %02X %02X\n", memFisica.memoria[frame*TAM_PAGE+copied], //memFisica.memoria[frame*TAM_PAGE+copied+1], 
-//           memFisica.memoria[frame*TAM_PAGE+copied+2], memFisica.memoria[frame*TAM_PAGE+copied+3]);
+    int offset = copied % TAM_PAGE;
+    memcpy(memFisica.memoria + frame*TAM_PAGE + offset, instr, TAM_PAL);
+    //printf("COPIED = %02X %02X %02X %02X\n", memFisica.memoria[frame*TAM_PAGE+copied], memFisica.memoria[frame*TAM_PAGE+copied+1],  memFisica.memoria[frame*TAM_PAGE+copied+2], memFisica.memoria[frame*TAM_PAGE+copied+3]);
     //printf(" Dirección que uso para acceder: %d\n Copied: %d, Frame: %d\n", frame*TAM_PAGE+copied, copied, frame);
     copied += TAM_PAL;
     linea = strtok(NULL, "\n");
   }
   
   for(int i=0; i<(copied/TAM_PAGE); i++){
-    memFisica.frames[frame].libre = 0;
-    memFisica.frames[frame].pid = proceso->pid;
-    memFisica.frames[frame].pagina = i;
+    int f = frames[i];
+    memFisica.frames[f].libre = 0;
+    memFisica.frames[f].pid = proceso->pid;
+    memFisica.frames[f].pagina = i;
   } 
   
   pthread_mutex_unlock(&mem_mutex);

@@ -13,20 +13,19 @@ int id_table = 0;
 
 
 int tlb_acc(hilo_t *hilo, int pag_num){
-  MMU mm = hilo->mmu;
   for(int i=0; i< TLB_ENTRIES; i++){
-    if(mm.tlb[i].val && mm.tlb[i].vpn==pag_num) return mm.tlb[i].frame;
+    if(hilo->mmu.tlb[i].val && hilo->mmu.tlb[i].vpn == pag_num)
+      return hilo->mmu.tlb[i].frame;
   }
   return -1;
 }
 
 int add_tlb(hilo_t *hilo, int pag_num, int marco){
-  MMU mm = hilo->mmu;
   for(int i=0; i< TLB_ENTRIES; i++){
-    if(!mm.tlb[i].val){
-      mm.tlb[i].val = 1;
-      mm.tlb[i].vpn = pag_num;
-      mm.tlb[i].frame = marco;
+    if(!hilo->mmu.tlb[i].val){
+      hilo->mmu.tlb[i].val = 1;
+      hilo->mmu.tlb[i].vpn = pag_num;
+      hilo->mmu.tlb[i].frame = marco;
       printf("Entrada añadida a la TLB\n");
       return 1;
     }
