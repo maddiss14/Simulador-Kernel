@@ -248,7 +248,7 @@ static void read_prog(char *filename, PCB *proceso)
       free(buf);
       exit(1);
    }
-   printf("PAG_TOT %d\n", pag_tot);
+   //printf("PAG_TOT %d\n", pag_tot);
    if(asig_frame_libre(frames, pag_tot)== -1){
       perror("Error al asignar los frames libres\n");
       free(frames);
@@ -313,7 +313,7 @@ void *generator_thread(void *arg){
       PCB *nuevo = malloc(sizeof(PCB));
       char ruta[4096];
       snprintf(ruta, sizeof(ruta), "../prometheus/prog%03d.elf", pid_gen);
-      printf("Ruta %s\n", ruta);
+      //printf("Ruta %s\n", ruta);
       nuevo->pid=pid_gen++;
       nuevo->vida= rand() % 10 + 7;
       nuevo->PC = -1;

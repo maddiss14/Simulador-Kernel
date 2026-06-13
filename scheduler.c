@@ -141,7 +141,7 @@ static void elim_proc_sin_vida_colas()
 {
   for(int i = 0; i<r_colaColas.num_colas; i++){
     p_queue *queue = r_colaColas.colaPrio[i];
-    if(queue != NULL) continue;
+    if(queue == NULL) continue;
       
       for(int j=0; j < queue->num_process; j++){
         PCB *p = queue->lista[j];
@@ -180,14 +180,14 @@ static void elim_proc_sin_vida_ejec()
     for(int j=0; j<machine.num_core;j++){
       core_t *core = &cpu->cores[j];
       
-      for(int k=0; k<machine.num_hilos; k++){
-        hilo_t *hilo = &core->hilos[k];
+      if(core->ejec =! -1){
+        hilo_t *hilo = &core->hilos[core->ejec];
         
         PCB *p = hilo->r_pcb;
         if(p != NULL && p->vida <= 0){
-          printf("Proceso %d se ha quedado sin vida en hilo %d.%d.%d\n", p->pid, i, j, k);
-          
-          liberar_pcb(hilo->r_pcb);
+          printf("Proceso %d se ha quedado sin vida en hilo %d.%d.%d\n", p->pid, i, j, core->ejec);
+          hilo->r_pcb = NULL;
+          liberar_pcb(p);
           restart_hilo(hilo);
           
           core->ejec = -1;
@@ -280,11 +280,11 @@ void *scheduler_thread(void *arg)
       pthread_mutex_lock(&clock_mutex);
       pthread_cond_wait(&scheduler_cond, &clock_mutex);
       
-      printf("Scheduler: %d\n", tick_timer);
+      //printf("Scheduler: %d\n", tick_timer);
       elim_proc_sin_vida_ejec();
       elim_proc_sin_vida_colas();
-      asig_process();
       expulsar_process();
+      asig_process();
       pthread_mutex_unlock(&clock_mutex);
    }
 }

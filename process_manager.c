@@ -73,10 +73,7 @@ void ejecutar_instr(core_t *core, hilo_t *hilo, unsigned char instr[4])
       printf("\n   EL PROCESO %d HA TERMINADO SU EJECUCIÓN\n", hilo->r_pcb->pid);
       
       PCB *p = hilo->r_pcb;
-      
       p->vida = -1;
-      free(p);
-      
       hilo->r_pcb = NULL;
       hilo->estado = 2;
       core->ejec = -1;
