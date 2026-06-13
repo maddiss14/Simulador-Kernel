@@ -9,28 +9,6 @@
 #include "machine.h"
 #include "memoria.h"
 
-static int tlb_acc(hilo_t *hilo, int pag_num){
-  MMU mm = hilo->mmu;
-  for(int i=0; i< TLB_ENTRIES; i++){
-    if(mm.tlb[i].val && mm.tlb[i].vpn==pag_num) return mm.tlb[i].frame;
-  }
-  return -1;
-}
-
-static int add_tlb(hilo_t *hilo, int pag_num, int marco){
-  MMU mm = hilo->mmu;
-  for(int i=0; i< TLB_ENTRIES; i++){
-    if(!mm.tlb[i].val){
-      mm.tlb[i].val = 1;
-      mm.tlb[i].vpn = pag_num;
-      mm.tlb[i].frame = marco;
-      printf("Entrada añadida a la TLB\n");
-      return 1;
-    }
-  }
-  return -1;
-}
-
 static void elim_proc_sin_vida_colas(){
   for(int i = 0; i<r_colaColas.num_colas; i++){
     p_queue *queue = r_colaColas.colaPrio[i];
@@ -86,15 +64,27 @@ void ejecutar_instr(hilo_t *hilo, unsigned char instr[4])
   unsigned int inst = ((unsigned int)instr[0] << 24) | ((unsigned int)instr[1] << 16) | ((unsigned int)instr[2] << 8) | ((unsigned int)instr[3]);
   
   unsigned int opcode = (inst >> 28) & 0xF;
-  
-  int reg;
-  int dir;
-  
+  page_table_t *tabla = memVirtual.tablas[hilo->PTBR];
+  int reg = 0;
+  int dir = 0;
+  int fault = 0;
   switch(opcode){
   
     case 0x0: //LD
     {
       reg = (inst >> 24) & 0xF;
+      dir = inst & 0xFFFFFF;
+      
+      unsigned char *ptr = translate_dir(hilo, dir, &fault);
+      if(!ptr || fault){
+        printf("Page fault en LD\n");
+        break;
+      }
+      
+      unsigned int val = ((unsigned int)ptr[0] << 24) | ((unsigned int)ptr[1] << 16) | ((unsigned int)ptr[2] << 8) | ((unsigned int)ptr[3]);
+      hilo->regs[reg] = val;
+      printf("LD R%d <-MEM[%d] = %u\n", reg, dir, val);
+      break;
     }
   }
 }

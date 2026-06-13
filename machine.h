@@ -4,6 +4,7 @@
 
 #define QUANTUM 2
 #define TLB_ENTRIES 16
+#define NUM_REGS 16
 
 typedef struct TLB{
    int val;  //Entrada válida
@@ -23,6 +24,7 @@ typedef struct{
    int PC;
    int PTBR;
    MMU mmu;
+   int regs[NUM_REGS];
 } hilo_t;
 
 typedef struct{

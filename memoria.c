@@ -12,29 +12,47 @@ pthread_mutex_t mem_mutex = PTHREAD_MUTEX_INITIALIZER;
 int id_table = 0;
 
 
-unsigned char *translate_dir(const hilo_t *hilo,int va, int *page_fault){
+int tlb_acc(hilo_t *hilo, int pag_num){
+  MMU mm = hilo->mmu;
+  for(int i=0; i< TLB_ENTRIES; i++){
+    if(mm.tlb[i].val && mm.tlb[i].vpn==pag_num) return mm.tlb[i].frame;
+  }
+  return -1;
+}
+
+int add_tlb(hilo_t *hilo, int pag_num, int marco){
+  MMU mm = hilo->mmu;
+  for(int i=0; i< TLB_ENTRIES; i++){
+    if(!mm.tlb[i].val){
+      mm.tlb[i].val = 1;
+      mm.tlb[i].vpn = pag_num;
+      mm.tlb[i].frame = marco;
+      printf("Entrada añadida a la TLB\n");
+      return 1;
+    }
+  }
+  return -1;
+}
+
+unsigned char *translate_dir(hilo_t *hilo,int va, int *page_fault)
+{
    if(page_fault) *page_fault = 0;
-   
-   if(!memVirtual.tablas || hilo->PTBR < 0 || hilo->PTBR >= memVirtual.num_tablas){
-      if(page_fault) *page_fault = 1;
-      return NULL;
-   }
-   
-   page_table_t *tabla = memVirtual.tablas[hilo->PTBR];
-   if(!tabla || !tabla->pages || tabla->num_pages <= 0){
-      if(page_fault) *page_fault = 1;
-      return NULL;
-   }
    
    int vpn = va/TAM_PAGE;
    int off = va % TAM_PAGE;
    
-   if(vpn < 0 || vpn >=tabla->num_pages || tabla->pages[vpn].valida == 0){
+   int frame = tlb_acc(hilo, vpn);
+   
+  if(frame == -1){
+    page_table_t *tabla = memVirtual.tablas[hilo->PTBR];
+    if(!tabla || vpn>= tabla->num_pages || tabla->pages[vpn].valida == 0){
       if(page_fault) *page_fault = 1;
       return NULL;
-   }
+    }
+    frame = tabla->pages[vpn].frame_id;
    
-   int frame = tabla->pages[vpn].frame_id;
+    add_tlb(hilo, vpn, frame);
+   }
    int pa = frame*TAM_PAGE +off;
    return memFisica.memoria + pa;
 }

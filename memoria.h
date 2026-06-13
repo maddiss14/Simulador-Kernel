@@ -45,11 +45,13 @@ extern virtual_mem_t memVirtual;
 
 extern pthread_mutex_t mem_mutex;
 
+int tlb_acc(hilo_t *hilo, int pag_num);
+int add_tlb(hilo_t *hilo, int pag_num, int marco);
 void phys_mem_init();
 void virt_mem_init();
 page_table_t *crear_tabla(int num_pages, const int *frames, int pid);
 int asig_frame_libre(int *frames_libres, int num_page);
 void mm_read(hilo_t *hilo, int va, char *out, int *fault);
 int add_ptable(page_table_t *tabla);
-unsigned char *translate_dir(const hilo_t *hilo,int va, int *page_fault);
+unsigned char *translate_dir(hilo_t *hilo,int va, int *page_fault);
 void printf_tablaPag(page_table_t *tabla);
