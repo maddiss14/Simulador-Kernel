@@ -12,6 +12,12 @@
 
 void ejecutar_instr(core_t *core, hilo_t *hilo, unsigned char instr[4])
 {
+
+  if(!hilo || !hilo->r_pcb){
+    perror("Error al ejecutar ejecutar_instr");
+    exit(-1);
+  }
+  
   unsigned int inst = ((unsigned int)instr[0] << 24) | ((unsigned int)instr[1] << 16) | ((unsigned int)instr[2] << 8) | ((unsigned int)instr[3]);
   
   unsigned int opcode = (inst >> 28) & 0xF;
@@ -133,7 +139,7 @@ void ejec_hilo(){
       for(int k=0; k<machine.num_hilos; k++){
         hilo_t *hilo = &core->hilos[k];
         if(!hilo || !hilo->r_pcb) continue;
-
+        
         if(core->quantum > 0 && hilo->r_pcb->vida > 0){        
           if(hilo->estado == 1 && core->quantum>0){
             printf("   Hilo %d ejecutando proceso %d\n", hilo->id_hilo, hilo->r_pcb->pid);

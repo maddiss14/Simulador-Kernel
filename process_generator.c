@@ -218,7 +218,7 @@ static void read_prog(char *filename, PCB *proceso)
       exit(1);
    }
    sscanf(linea+6, "%x", &val_text);
-   printf("Valor .text %d (0x%06X)\n", val_text, val_text);
+   //printf("Valor .text %d (0x%06X)\n", val_text, val_text);
    
    linea=strtok(NULL, "\n");
    if(!linea){

@@ -143,31 +143,64 @@ static void elim_proc_sin_vida_colas()
     p_queue *queue = r_colaColas.colaPrio[i];
     if(queue == NULL) continue;
       
-      for(int j=0; j < queue->num_process; j++){
-        PCB *p = queue->lista[j];
+    for(int j=0; j < queue->num_process; j++){
+      PCB *p = queue->lista[j];
         
-        if(p && p->vida <= 0){
-          printf("Proceso %d eliminado de la cola (sin vida)\n", queue->lista[j]->pid);
-          free(p);
+      if(p && p->vida <= 0){
+        printf("Proceso %d eliminado de la cola (sin vida)\n", queue->lista[j]->pid);
+        free(p);
           
-          //Mover array
-          for(int k= j; k< queue->num_process -1; k++){
-            queue->lista[k] = queue->lista[k+1];
-          
-          queue->num_process--;
-          queue->lista[queue->num_process] = NULL;
-          
-          j--;
+        //Mover array
+        for(int k= j; k< queue->num_process -1; k++){
+          queue->lista[k] = queue->lista[k+1];
         }
+        queue->num_process--;
+        queue->lista[queue->num_process] = NULL;
+        
+        j--;
       }
+    }
           //Actualizar punteros
-      if(queue->num_process > 0){
-        queue->first = queue->lista[0];
-        queue->last = queue->lista[queue->num_process-1];
+    if(queue->num_process > 0){
+      queue->first = queue->lista[0];
+      queue->last = queue->lista[queue->num_process-1];
+    }
+    else{
+      queue->first = NULL;
+      queue->last = NULL; 
+    }
+  }
+    
+  for(int i = 0; i<f_colaColas.num_colas; i++){
+    p_queue *queue = f_colaColas.colaPrio[i];
+    if(queue == NULL) continue;
+      
+    for(int j=0; j < queue->num_process; j++){
+      PCB *p = queue->lista[j];
+        
+      if(p && p->vida <= 0){
+        printf("Proceso %d eliminado de la cola (sin vida)\n", queue->lista[j]->pid);
+        free(p);
+          
+        //Mover array
+        for(int k= j; k< queue->num_process -1; k++){
+          queue->lista[k] = queue->lista[k+1];
+        }
+          
+        queue->num_process--;
+        queue->lista[queue->num_process] = NULL;
+          
+        j--;
       }
-      else{
-        queue->last = NULL; 
-      }
+    }
+          //Actualizar punteros
+    if(queue->num_process > 0){
+      queue->first = queue->lista[0];
+      queue->last = queue->lista[queue->num_process-1];
+    }
+    else{
+      queue->first = NULL;
+      queue->last = NULL; 
     }
   }
 }
@@ -180,17 +213,20 @@ static void elim_proc_sin_vida_ejec()
     for(int j=0; j<machine.num_core;j++){
       core_t *core = &cpu->cores[j];
       
-      if(core->ejec =! -1){
-        hilo_t *hilo = &core->hilos[core->ejec];
+      for(int k=0; k<machine.num_hilos; k++){
+        hilo_t *hilo = &core->hilos[k];
         
         PCB *p = hilo->r_pcb;
         if(p != NULL && p->vida <= 0){
-          printf("Proceso %d se ha quedado sin vida en hilo %d.%d.%d\n", p->pid, i, j, core->ejec);
+          printf("Proceso %d se ha quedado sin vida en hilo %d.%d.%d\n", p->pid, i, j, k);
+          
           hilo->r_pcb = NULL;
           liberar_pcb(p);
           restart_hilo(hilo);
           
-          core->ejec = -1;
+          if(core->ejec == k){
+            core->ejec = -1;
+          }
         }
       }
     }
